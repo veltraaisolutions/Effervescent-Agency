@@ -29,4 +29,5 @@ export interface Candidate {
   status: 'pending' | 'approved' | 'rejected';
   passport_valid: boolean | null;
   is_uk_passport: boolean | null;
+  wa_sent_at: string | null;
 }

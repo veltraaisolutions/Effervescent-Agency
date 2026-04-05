@@ -329,6 +329,14 @@ function CandidateModal({
             <InfoRow label="Accepts self-employed terms" value={candidate.self_employed ? 'Yes ✓' : 'No'} />
             <InfoRow label="Accepts weekend/night work" value={candidate.weekend_work ? 'Yes ✓' : 'No'} />
             <InfoRow label="How they heard about us" value={candidate.heard_about} />
+            <InfoRow
+              label="WhatsApp Invite Sent"
+              value={
+                candidate.wa_sent_at
+                  ? formatDate(candidate.wa_sent_at)
+                  : <span className="text-gray-600">Not sent</span>
+              }
+            />
           </Section>
         </div>
       </div>
@@ -406,7 +414,7 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
   const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
   const [selected, setSelected] = useState<Candidate | null>(null);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | Candidate['status']>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | Candidate['status'] | 'invite_sent'>('all');
   const [sortKey, setSortKey] = useState<SortKey>('created_at');
   const [sortAsc, setSortAsc] = useState(false);
 
@@ -427,7 +435,9 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
   const filtered = candidates
     .filter((c) => {
       const q = search.toLowerCase();
-      if (statusFilter !== 'all' && c.status !== statusFilter) return false;
+      if (statusFilter === 'invite_sent') {
+        if (!c.wa_sent_at) return false;
+      } else if (statusFilter !== 'all' && c.status !== statusFilter) return false;
       if (!q) return true;
       return (
         c.full_name.toLowerCase().includes(q) ||
@@ -448,6 +458,7 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
   const counts = {
     total: candidates.length,
     pending: candidates.filter((c) => c.status === 'pending').length,
+    inviteSent: candidates.filter((c) => c.wa_sent_at !== null).length,
     approved: candidates.filter((c) => c.status === 'approved').length,
     rejected: candidates.filter((c) => c.status === 'rejected').length,
   };
@@ -483,10 +494,11 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
             { label: 'Total', value: counts.total, icon: Briefcase, color: 'text-pink-400', bg: 'bg-pink-500/10 border-pink-500/20' },
             { label: 'Pending', value: counts.pending, icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
+            { label: 'Invite Sent', value: counts.inviteSent, icon: Mail, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
             { label: 'Approved', value: counts.approved, icon: CheckCircle2, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
             { label: 'Rejected', value: counts.rejected, icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
           ].map(({ label, value, icon: Icon, color, bg }) => (
@@ -511,17 +523,23 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
               placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
           />
           <div className="flex gap-2">
-            {(['all', 'pending', 'approved', 'rejected'] as const).map((s) => (
+            {([
+              { value: 'all', label: 'All' },
+              { value: 'pending', label: 'Pending' },
+              { value: 'invite_sent', label: 'Invite Sent' },
+              { value: 'approved', label: 'Approved' },
+              { value: 'rejected', label: 'Rejected' },
+            ] as const).map(({ value, label }) => (
               <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border capitalize transition-all ${
-                  statusFilter === s
+                key={value}
+                onClick={() => setStatusFilter(value)}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                  statusFilter === value
                     ? 'bg-pink-500 text-white border-pink-500'
                     : 'bg-[#111111] text-gray-400 border-[#1f1f1f] hover:border-pink-500/50 hover:text-pink-400'
                 }`}
               >
-                {s === 'all' ? 'All' : s}
+                {label}
               </button>
             ))}
           </div>
