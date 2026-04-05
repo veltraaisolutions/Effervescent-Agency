@@ -18,9 +18,20 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Star,
+  ThumbsUp,
+  ThumbsDown,
+  Award,
 } from 'lucide-react';
 import { Candidate } from './types';
-import { approveCandidate, rejectCandidate } from './actions';
+import {
+  approveCandidate,
+  rejectCandidate,
+  markTrialOffered,
+  markTrialSuccessful,
+  markTrialFailed,
+  changeStatus,
+} from './actions';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -30,15 +41,34 @@ function formatDate(iso: string) {
   });
 }
 
+const STATUS_LABEL: Record<Candidate['status'], string> = {
+  pending: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  trial_offered: 'Trial Offered',
+  'on-boarded': 'Onboarded',
+};
+
+// Logical next statuses for each status
+const STATUS_TRANSITIONS: Record<Candidate['status'], Candidate['status'][]> = {
+  pending:       ['approved', 'rejected'],
+  approved:      ['trial_offered', 'rejected'],
+  trial_offered: ['on-boarded', 'rejected'],
+  'on-boarded':  [],            // terminal
+  rejected:      ['pending'],   // allow reconsideration
+};
+
 function StatusBadge({ status }: { status: Candidate['status'] }) {
-  const map = {
+  const map: Record<Candidate['status'], string> = {
     pending: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/25',
     approved: 'bg-green-500/15 text-green-400 border-green-500/25',
     rejected: 'bg-red-500/15 text-red-400 border-red-500/25',
+    trial_offered: 'bg-purple-500/15 text-purple-400 border-purple-500/25',
+    'on-boarded': 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
   };
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${map[status]}`}>
-      {status}
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${map[status]}`}>
+      {STATUS_LABEL[status]}
     </span>
   );
 }
@@ -75,11 +105,13 @@ function CandidateModal({
 }: {
   candidate: Candidate;
   onClose: () => void;
-  onStatusChange: (id: string, status: 'approved' | 'rejected') => void;
+  onStatusChange: (id: string, patch: Partial<Candidate>) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [actionError, setActionError] = useState('');
-  const [activeAction, setActiveAction] = useState<'approve' | 'reject' | null>(null);
+  const [activeAction, setActiveAction] = useState<
+    'approve' | 'reject' | 'trial_offer' | 'trial_success' | 'trial_fail' | null
+  >(null);
 
   function handleApprove() {
     setActionError('');
@@ -89,7 +121,7 @@ function CandidateModal({
       if (result.error) {
         setActionError(result.error);
       } else {
-        onStatusChange(candidate.id, 'approved');
+        onStatusChange(candidate.id, { status: 'approved' });
       }
       setActiveAction(null);
     });
@@ -103,7 +135,51 @@ function CandidateModal({
       if (result.error) {
         setActionError(result.error);
       } else {
-        onStatusChange(candidate.id, 'rejected');
+        onStatusChange(candidate.id, { status: 'rejected' });
+      }
+      setActiveAction(null);
+    });
+  }
+
+  function handleTrialOffer() {
+    setActionError('');
+    setActiveAction('trial_offer');
+    startTransition(async () => {
+      const now = new Date().toISOString();
+      const result = await markTrialOffered(candidate.id);
+      if (result.error) {
+        setActionError(result.error);
+      } else {
+        onStatusChange(candidate.id, { status: 'trial_offered', trial_offered_at: now });
+      }
+      setActiveAction(null);
+    });
+  }
+
+  function handleTrialSuccess() {
+    setActionError('');
+    setActiveAction('trial_success');
+    startTransition(async () => {
+      const now = new Date().toISOString();
+      const result = await markTrialSuccessful(candidate.id);
+      if (result.error) {
+        setActionError(result.error);
+      } else {
+        onStatusChange(candidate.id, { status: 'on-boarded', trial_success: true, onboarded_at: now });
+      }
+      setActiveAction(null);
+    });
+  }
+
+  function handleTrialFail() {
+    setActionError('');
+    setActiveAction('trial_fail');
+    startTransition(async () => {
+      const result = await markTrialFailed(candidate.id);
+      if (result.error) {
+        setActionError(result.error);
+      } else {
+        onStatusChange(candidate.id, { status: 'rejected', trial_success: false });
       }
       setActiveAction(null);
     });
@@ -155,11 +231,9 @@ function CandidateModal({
                   hover:bg-green-500/25 hover:border-green-500/40
                   disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {isPending && activeAction === 'approve' ? (
-                  <div className="w-4 h-4 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
-                ) : (
-                  <CheckCircle2 className="w-4 h-4" />
-                )}
+                {isPending && activeAction === 'approve'
+                  ? <div className="w-4 h-4 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
+                  : <CheckCircle2 className="w-4 h-4" />}
                 Approve
               </button>
               <button
@@ -170,13 +244,70 @@ function CandidateModal({
                   hover:bg-red-500/25 hover:border-red-500/40
                   disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {isPending && activeAction === 'reject' ? (
-                  <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
-                ) : (
-                  <XCircle className="w-4 h-4" />
-                )}
+                {isPending && activeAction === 'reject'
+                  ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                  : <XCircle className="w-4 h-4" />}
                 Reject
               </button>
+            </div>
+          )}
+
+          {candidate.status === 'approved' && candidate.wa_sent_at && (
+            <div className="flex gap-3">
+              <button
+                onClick={handleTrialOffer}
+                disabled={isPending}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold
+                  bg-purple-500/15 text-purple-400 border border-purple-500/25
+                  hover:bg-purple-500/25 hover:border-purple-500/40
+                  disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {isPending && activeAction === 'trial_offer'
+                  ? <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+                  : <Star className="w-4 h-4" />}
+                Mark as Trial Offered
+              </button>
+            </div>
+          )}
+
+          {candidate.status === 'trial_offered' && (
+            <div className="flex gap-3">
+              <button
+                onClick={handleTrialSuccess}
+                disabled={isPending}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold
+                  bg-emerald-500/15 text-emerald-400 border border-emerald-500/25
+                  hover:bg-emerald-500/25 hover:border-emerald-500/40
+                  disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {isPending && activeAction === 'trial_success'
+                  ? <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+                  : <ThumbsUp className="w-4 h-4" />}
+                Trial Successful
+              </button>
+              <button
+                onClick={handleTrialFail}
+                disabled={isPending}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold
+                  bg-red-500/15 text-red-400 border border-red-500/25
+                  hover:bg-red-500/25 hover:border-red-500/40
+                  disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {isPending && activeAction === 'trial_fail'
+                  ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                  : <ThumbsDown className="w-4 h-4" />}
+                Trial Failed
+              </button>
+            </div>
+          )}
+
+          {candidate.status === 'on-boarded' && (
+            <div className="flex items-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <Award className="w-4 h-4 text-emerald-400" />
+              <span className="text-sm font-semibold text-emerald-400">Onboarded</span>
+              {candidate.onboarded_at && (
+                <span className="text-xs text-emerald-600 ml-1">since {formatDate(candidate.onboarded_at)}</span>
+              )}
             </div>
           )}
 
@@ -351,7 +482,7 @@ function RowActions({
   onStatusChange,
 }: {
   candidate: Candidate;
-  onStatusChange: (id: string, status: 'approved' | 'rejected') => void;
+  onStatusChange: (id: string, patch: Partial<Candidate>) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [activeAction, setActiveAction] = useState<'approve' | 'reject' | null>(null);
@@ -363,7 +494,7 @@ function RowActions({
     setActiveAction('approve');
     startTransition(async () => {
       const result = await approveCandidate(candidate);
-      if (!result.error) onStatusChange(candidate.id, 'approved');
+      if (!result.error) onStatusChange(candidate.id, { status: 'approved' });
       setActiveAction(null);
     });
   }
@@ -373,7 +504,7 @@ function RowActions({
     setActiveAction('reject');
     startTransition(async () => {
       const result = await rejectCandidate(candidate.id);
-      if (!result.error) onStatusChange(candidate.id, 'rejected');
+      if (!result.error) onStatusChange(candidate.id, { status: 'rejected' });
       setActiveAction(null);
     });
   }
@@ -413,18 +544,33 @@ type SortKey = 'created_at' | 'full_name' | 'status';
 export function CandidatesDashboard({ initialCandidates }: { initialCandidates: Candidate[] }) {
   const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
   const [selected, setSelected] = useState<Candidate | null>(null);
+  const [openStatusId, setOpenStatusId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | Candidate['status'] | 'invite_sent'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | Candidate['status'] | 'invite_sent' | 'trial_offered_filter' | 'onboarded_filter'>('all');
   const [sortKey, setSortKey] = useState<SortKey>('created_at');
   const [sortAsc, setSortAsc] = useState(false);
 
-  function handleStatusChange(id: string, status: 'approved' | 'rejected') {
+  function handleStatusChange(id: string, patch: Partial<Candidate>) {
     setCandidates((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status } : c))
+      prev.map((c) => (c.id === id ? { ...c, ...patch } : c))
     );
     if (selected?.id === id) {
-      setSelected((prev) => prev ? { ...prev, status } : null);
+      setSelected((prev) => prev ? { ...prev, ...patch } : null);
     }
+  }
+
+  async function handleStatusDirect(candidate: Candidate, newStatus: Candidate['status']) {
+    setOpenStatusId(null);
+    const confirmed = window.confirm(
+      `Change "${candidate.full_name}" status from "${STATUS_LABEL[candidate.status]}" to "${STATUS_LABEL[newStatus]}"?\n\nSave changes?`
+    );
+    if (!confirmed) return;
+    const result = await changeStatus(candidate.id, candidate.status, newStatus);
+    if (result.error) {
+      window.alert(`Failed to update: ${result.error}`);
+      return;
+    }
+    handleStatusChange(candidate.id, result.patch as Partial<Candidate>);
   }
 
   function toggleSort(key: SortKey) {
@@ -437,6 +583,10 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
       const q = search.toLowerCase();
       if (statusFilter === 'invite_sent') {
         if (!c.wa_sent_at) return false;
+      } else if (statusFilter === 'trial_offered_filter') {
+        if (!c.trial_offered_at) return false;
+      } else if (statusFilter === 'onboarded_filter') {
+        if (c.status !== 'on-boarded') return false;
       } else if (statusFilter !== 'all' && c.status !== statusFilter) return false;
       if (!q) return true;
       return (
@@ -460,6 +610,8 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
     pending: candidates.filter((c) => c.status === 'pending').length,
     inviteSent: candidates.filter((c) => c.wa_sent_at !== null).length,
     approved: candidates.filter((c) => c.status === 'approved').length,
+    trialOffered: candidates.filter((c) => c.trial_offered_at !== null).length,
+    onboarded: candidates.filter((c) => c.status === 'on-boarded').length,
     rejected: candidates.filter((c) => c.status === 'rejected').length,
   };
 
@@ -494,13 +646,15 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
-            { label: 'Total', value: counts.total, icon: Briefcase, color: 'text-pink-400', bg: 'bg-pink-500/10 border-pink-500/20' },
-            { label: 'Pending', value: counts.pending, icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
-            { label: 'Invite Sent', value: counts.inviteSent, icon: Mail, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
-            { label: 'Approved', value: counts.approved, icon: CheckCircle2, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
-            { label: 'Rejected', value: counts.rejected, icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
+            { label: 'Total',         value: counts.total,        icon: Briefcase,   color: 'text-pink-400',    bg: 'bg-pink-500/10 border-pink-500/20'    },
+            { label: 'Pending',       value: counts.pending,      icon: Clock,       color: 'text-yellow-400',  bg: 'bg-yellow-500/10 border-yellow-500/20' },
+            { label: 'Invite Sent',   value: counts.inviteSent,   icon: Mail,        color: 'text-blue-400',    bg: 'bg-blue-500/10 border-blue-500/20'    },
+            { label: 'Approved',      value: counts.approved,     icon: CheckCircle2,color: 'text-green-400',   bg: 'bg-green-500/10 border-green-500/20'  },
+            { label: 'Trial Offered', value: counts.trialOffered, icon: Star,        color: 'text-purple-400',  bg: 'bg-purple-500/10 border-purple-500/20' },
+            { label: 'Onboarded',     value: counts.onboarded,    icon: Award,       color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+            { label: 'Rejected',      value: counts.rejected,     icon: XCircle,     color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/20'      },
           ].map(({ label, value, icon: Icon, color, bg }) => (
             <div key={label} className={`rounded-2xl border p-4 flex items-center gap-3 ${bg}`}>
               <Icon className={`w-5 h-5 flex-shrink-0 ${color}`} />
@@ -522,13 +676,15 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
             className="flex-1 px-4 py-2.5 bg-[#111111] border border-[#1f1f1f] rounded-xl text-sm text-white
               placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
           />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {([
-              { value: 'all', label: 'All' },
-              { value: 'pending', label: 'Pending' },
-              { value: 'invite_sent', label: 'Invite Sent' },
-              { value: 'approved', label: 'Approved' },
-              { value: 'rejected', label: 'Rejected' },
+              { value: 'all',                  label: 'All' },
+              { value: 'pending',              label: 'Pending' },
+              { value: 'invite_sent',          label: 'Invite Sent' },
+              { value: 'approved',             label: 'Approved' },
+              { value: 'trial_offered_filter', label: 'Trial Offered' },
+              { value: 'onboarded_filter',     label: 'Onboarded' },
+              { value: 'rejected',             label: 'Rejected' },
             ] as const).map(({ value, label }) => (
               <button
                 key={value}
@@ -619,8 +775,32 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{c.role_interest}</td>
-                        <td className="px-4 py-3">
-                          <StatusBadge status={c.status} />
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative">
+                            <button
+                              onClick={() => setOpenStatusId(openStatusId === c.id ? null : c.id)}
+                              className="flex items-center gap-1 group"
+                              title={STATUS_TRANSITIONS[c.status].length > 0 ? 'Click to change status' : undefined}
+                            >
+                              <StatusBadge status={c.status} />
+                              {STATUS_TRANSITIONS[c.status].length > 0 && (
+                                <ChevronDown className="w-3 h-3 text-gray-600 group-hover:text-gray-400 transition-colors" />
+                              )}
+                            </button>
+                            {openStatusId === c.id && STATUS_TRANSITIONS[c.status].length > 0 && (
+                              <div className="absolute left-0 top-full mt-1 z-30 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl shadow-2xl py-1 min-w-[148px]">
+                                {STATUS_TRANSITIONS[c.status].map((s) => (
+                                  <button
+                                    key={s}
+                                    onClick={() => handleStatusDirect(c, s)}
+                                    className="w-full text-left px-3 py-2 hover:bg-[#252525] transition-colors flex items-center gap-2"
+                                  >
+                                    <StatusBadge status={s} />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
                           <Calendar className="w-3 h-3 inline mr-1" />
@@ -657,7 +837,30 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                         <p className="font-semibold text-white">{c.full_name}</p>
                         <p className="text-xs text-gray-500">{c.email}</p>
                       </div>
-                      <StatusBadge status={c.status} />
+                      <div className="relative" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => setOpenStatusId(openStatusId === c.id ? null : c.id)}
+                          className="flex items-center gap-1 group"
+                        >
+                          <StatusBadge status={c.status} />
+                          {STATUS_TRANSITIONS[c.status].length > 0 && (
+                            <ChevronDown className="w-3 h-3 text-gray-600 group-hover:text-gray-400 transition-colors" />
+                          )}
+                        </button>
+                        {openStatusId === c.id && STATUS_TRANSITIONS[c.status].length > 0 && (
+                          <div className="absolute right-0 top-full mt-1 z-30 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl shadow-2xl py-1 min-w-[148px]">
+                            {STATUS_TRANSITIONS[c.status].map((s) => (
+                              <button
+                                key={s}
+                                onClick={() => handleStatusDirect(c, s)}
+                                className="w-full text-left px-3 py-2 hover:bg-[#252525] transition-colors flex items-center gap-2"
+                              >
+                                <StatusBadge status={s} />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{c.primary_location}</span>
@@ -683,6 +886,11 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
           Showing {filtered.length} of {candidates.length} candidates
         </p>
       </div>
+
+      {/* Backdrop to close status dropdown */}
+      {openStatusId && (
+        <div className="fixed inset-0 z-20" onClick={() => setOpenStatusId(null)} />
+      )}
 
       {/* Detail Modal */}
       {selected && (

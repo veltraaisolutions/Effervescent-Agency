@@ -35,3 +35,50 @@ export async function rejectCandidate(id: string): Promise<{ error?: string }> {
   if (error) return { error: error.message };
   return {};
 }
+
+export async function markTrialOffered(id: string): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .from('milli_candidates')
+    .update({ status: 'trial_offered', trial_offered_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
+export async function markTrialSuccessful(id: string): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .from('milli_candidates')
+    .update({ trial_success: true, status: 'on-boarded', onboarded_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
+export async function markTrialFailed(id: string): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .from('milli_candidates')
+    .update({ trial_success: false, status: 'rejected' })
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
+export async function changeStatus(
+  id: string,
+  from: string,
+  to: string
+): Promise<{ error?: string; patch?: Record<string, unknown> }> {
+  const now = new Date().toISOString();
+  const patch: Record<string, unknown> = { status: to };
+
+  if (to === 'trial_offered') patch.trial_offered_at = now;
+  if (to === 'on-boarded') { patch.onboarded_at = now; patch.trial_success = true; }
+  if (to === 'rejected' && from === 'trial_offered') patch.trial_success = false;
+
+  const { error } = await supabase.from('milli_candidates').update(patch).eq('id', id);
+  if (error) return { error: error.message };
+  return { patch };
+}
