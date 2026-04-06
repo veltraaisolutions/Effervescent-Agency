@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   CheckCircle2,
@@ -537,6 +538,83 @@ function RowActions({
   );
 }
 
+// ─── Portal Status Dropdown ───────────────────────────────────────────────────
+
+function InlineStatusDropdown({
+  candidate,
+  onSelect,
+}: {
+  candidate: Candidate;
+  onSelect: (newStatus: Candidate['status']) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [dropRect, setDropRect] = useState<DOMRect | null>(null);
+
+  const transitions = STATUS_TRANSITIONS[candidate.status];
+  if (transitions.length === 0) return <StatusBadge status={candidate.status} />;
+
+  function handleOpen(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (buttonRef.current) {
+      setDropRect(buttonRef.current.getBoundingClientRect());
+    }
+    setOpen((v) => !v);
+  }
+
+  function handleSelect(e: React.MouseEvent, s: Candidate['status']) {
+    e.stopPropagation();
+    setOpen(false);
+    onSelect(s);
+  }
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        onClick={handleOpen}
+        className="flex items-center gap-1 group"
+        title="Click to change status"
+      >
+        <StatusBadge status={candidate.status} />
+        <ChevronDown className="w-3 h-3 text-gray-600 group-hover:text-gray-400 transition-colors" />
+      </button>
+
+      {open && dropRect && createPortal(
+        <>
+          {/* Invisible backdrop to close on outside click */}
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+          />
+          {/* Dropdown anchored above the button via fixed positioning */}
+          <div
+            style={{
+              position: 'fixed',
+              top: dropRect.top - 4,
+              left: dropRect.left,
+              zIndex: 9999,
+              transform: 'translateY(-100%)',
+            }}
+            className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl shadow-2xl py-1 min-w-[160px]"
+          >
+            {transitions.map((s) => (
+              <button
+                key={s}
+                onClick={(e) => handleSelect(e, s)}
+                className="w-full text-left px-3 py-2 hover:bg-[#252525] transition-colors flex items-center gap-2"
+              >
+                <StatusBadge status={s} />
+              </button>
+            ))}
+          </div>
+        </>,
+        document.body
+      )}
+    </>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 type SortKey = 'created_at' | 'full_name' | 'status';
@@ -544,7 +622,6 @@ type SortKey = 'created_at' | 'full_name' | 'status';
 export function CandidatesDashboard({ initialCandidates }: { initialCandidates: Candidate[] }) {
   const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
   const [selected, setSelected] = useState<Candidate | null>(null);
-  const [openStatusId, setOpenStatusId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Candidate['status'] | 'invite_sent' | 'trial_offered_filter' | 'onboarded_filter'>('all');
   const [sortKey, setSortKey] = useState<SortKey>('created_at');
@@ -560,7 +637,6 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
   }
 
   async function handleStatusDirect(candidate: Candidate, newStatus: Candidate['status']) {
-    setOpenStatusId(null);
     const confirmed = window.confirm(
       `Change "${candidate.full_name}" status from "${STATUS_LABEL[candidate.status]}" to "${STATUS_LABEL[newStatus]}"?\n\nSave changes?`
     );
@@ -582,9 +658,9 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
     .filter((c) => {
       const q = search.toLowerCase();
       if (statusFilter === 'invite_sent') {
-        if (!c.wa_sent_at) return false;
+        if (!c.wa_sent_at || c.status === 'rejected') return false;
       } else if (statusFilter === 'trial_offered_filter') {
-        if (!c.trial_offered_at) return false;
+        if (c.status !== 'trial_offered') return false;
       } else if (statusFilter === 'onboarded_filter') {
         if (c.status !== 'on-boarded') return false;
       } else if (statusFilter !== 'all' && c.status !== statusFilter) return false;
@@ -610,7 +686,7 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
     pending: candidates.filter((c) => c.status === 'pending').length,
     inviteSent: candidates.filter((c) => c.wa_sent_at !== null).length,
     approved: candidates.filter((c) => c.status === 'approved').length,
-    trialOffered: candidates.filter((c) => c.trial_offered_at !== null).length,
+    trialOffered: candidates.filter((c) => c.status === 'trial_offered').length,
     onboarded: candidates.filter((c) => c.status === 'on-boarded').length,
     rejected: candidates.filter((c) => c.status === 'rejected').length,
   };
@@ -702,7 +778,7 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
         </div>
 
         {/* Table */}
-        <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl overflow-hidden">
+        <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl overflow-visible">
           {filtered.length === 0 ? (
             <div className="py-16 text-center text-gray-600">
               <Briefcase className="w-8 h-8 mx-auto mb-3 opacity-30" />
@@ -776,31 +852,10 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                         </td>
                         <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{c.role_interest}</td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <div className="relative">
-                            <button
-                              onClick={() => setOpenStatusId(openStatusId === c.id ? null : c.id)}
-                              className="flex items-center gap-1 group"
-                              title={STATUS_TRANSITIONS[c.status].length > 0 ? 'Click to change status' : undefined}
-                            >
-                              <StatusBadge status={c.status} />
-                              {STATUS_TRANSITIONS[c.status].length > 0 && (
-                                <ChevronDown className="w-3 h-3 text-gray-600 group-hover:text-gray-400 transition-colors" />
-                              )}
-                            </button>
-                            {openStatusId === c.id && STATUS_TRANSITIONS[c.status].length > 0 && (
-                              <div className="absolute left-0 top-full mt-1 z-30 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl shadow-2xl py-1 min-w-[148px]">
-                                {STATUS_TRANSITIONS[c.status].map((s) => (
-                                  <button
-                                    key={s}
-                                    onClick={() => handleStatusDirect(c, s)}
-                                    className="w-full text-left px-3 py-2 hover:bg-[#252525] transition-colors flex items-center gap-2"
-                                  >
-                                    <StatusBadge status={s} />
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                          <InlineStatusDropdown
+                            candidate={c}
+                            onSelect={(s) => handleStatusDirect(c, s)}
+                          />
                         </td>
                         <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
                           <Calendar className="w-3 h-3 inline mr-1" />
@@ -837,29 +892,11 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                         <p className="font-semibold text-white">{c.full_name}</p>
                         <p className="text-xs text-gray-500">{c.email}</p>
                       </div>
-                      <div className="relative" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => setOpenStatusId(openStatusId === c.id ? null : c.id)}
-                          className="flex items-center gap-1 group"
-                        >
-                          <StatusBadge status={c.status} />
-                          {STATUS_TRANSITIONS[c.status].length > 0 && (
-                            <ChevronDown className="w-3 h-3 text-gray-600 group-hover:text-gray-400 transition-colors" />
-                          )}
-                        </button>
-                        {openStatusId === c.id && STATUS_TRANSITIONS[c.status].length > 0 && (
-                          <div className="absolute right-0 top-full mt-1 z-30 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl shadow-2xl py-1 min-w-[148px]">
-                            {STATUS_TRANSITIONS[c.status].map((s) => (
-                              <button
-                                key={s}
-                                onClick={() => handleStatusDirect(c, s)}
-                                className="w-full text-left px-3 py-2 hover:bg-[#252525] transition-colors flex items-center gap-2"
-                              >
-                                <StatusBadge status={s} />
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <InlineStatusDropdown
+                          candidate={c}
+                          onSelect={(s) => handleStatusDirect(c, s)}
+                        />
                       </div>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-500">
@@ -886,11 +923,6 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
           Showing {filtered.length} of {candidates.length} candidates
         </p>
       </div>
-
-      {/* Backdrop to close status dropdown */}
-      {openStatusId && (
-        <div className="fixed inset-0 z-20" onClick={() => setOpenStatusId(null)} />
-      )}
 
       {/* Detail Modal */}
       {selected && (
