@@ -1,38 +1,38 @@
-'use client';
+"use client";
 
 /**
  * Toggle: set to false in development to bypass the auth gate entirely.
  * Set to true to require the access code on the /candidates route.
  */
-const AUTH_ENABLED = true;
+const AUTH_ENABLED = false;
 
-const SESSION_KEY = 'cand_auth_ok';
+const SESSION_KEY = "cand_auth_ok";
 
-import { useState, useEffect, useTransition } from 'react';
-import { Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { verifyAccessCode } from './verify-code';
+import { useState, useEffect, useTransition } from "react";
+import { Lock, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { verifyAccessCode } from "./verify-code";
 
 async function hashInput(input: string): Promise<string> {
   const encoded = new TextEncoder().encode(input);
-  const buffer = await crypto.subtle.digest('SHA-256', encoded);
+  const buffer = await crypto.subtle.digest("SHA-256", encoded);
   return Array.from(new Uint8Array(buffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState(false);
   const [checked, setChecked] = useState(false); // prevents flash before sessionStorage read
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState("");
   const [showCode, setShowCode] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!AUTH_ENABLED) {
       setAuthed(true);
     } else {
-      setAuthed(sessionStorage.getItem(SESSION_KEY) === '1');
+      setAuthed(sessionStorage.getItem(SESSION_KEY) === "1");
     }
     setChecked(true);
   }, []);
@@ -43,19 +43,19 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
 
   function handleSubmit() {
     if (!code.trim()) {
-      setError('Please enter the access code.');
+      setError("Please enter the access code.");
       return;
     }
-    setError('');
+    setError("");
     startTransition(async () => {
       const hash = await hashInput(code.trim());
       const ok = await verifyAccessCode(hash);
       if (ok) {
-        sessionStorage.setItem(SESSION_KEY, '1');
+        sessionStorage.setItem(SESSION_KEY, "1");
         setAuthed(true);
       } else {
-        setError('Incorrect access code. Please try again.');
-        setCode('');
+        setError("Incorrect access code. Please try again.");
+        setCode("");
       }
     });
   }
@@ -86,10 +86,15 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
           {/* Input */}
           <div className="relative mb-4">
             <input
-              type={showCode ? 'text' : 'password'}
+              type={showCode ? "text" : "password"}
               value={code}
-              onChange={(e) => { setCode(e.target.value); setError(''); }}
-              onKeyDown={(e) => e.key === 'Enter' && !isPending && handleSubmit()}
+              onChange={(e) => {
+                setCode(e.target.value);
+                setError("");
+              }}
+              onKeyDown={(e) =>
+                e.key === "Enter" && !isPending && handleSubmit()
+              }
               placeholder="Access code"
               autoFocus
               className="w-full px-4 py-3 pr-11 bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl text-white text-sm
@@ -102,7 +107,11 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
               tabIndex={-1}
             >
-              {showCode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showCode ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
             </button>
           </div>
 
@@ -126,7 +135,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
             ) : (
               <ShieldCheck className="w-4 h-4" />
             )}
-            {isPending ? 'Verifying…' : 'Enter'}
+            {isPending ? "Verifying…" : "Enter"}
           </button>
         </div>
 
