@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef } from 'react';
+import Image from 'next/image';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -836,11 +837,15 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
       <header className="bg-[#0d0d0d]/95 backdrop-blur-sm border-b border-[#1a1a1a] sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div>
-            <p className="text-lg font-bold tracking-tight leading-none">
-              <span style={{ color: '#FDB8D7' }}>Effervescent</span>
-              <span className="text-white"> Agency</span>
-            </p>
-            <p className="text-xs text-gray-600 mt-0.5">Candidates Dashboard</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ boxShadow: '0 0 0 1px #FDB8D730' }}>
+                <Image src="/logo1.jpeg" alt="Effervescent Agency" width={40} height={40} className="w-full h-full object-cover" />
+              </div>
+              <div>
+                <p className="text-sm font-bold tracking-tight leading-none" style={{ color: '#FDB8D7' }}>Effervescent Agency</p>
+                <p className="text-xs text-gray-600 mt-0.5">Candidates Dashboard</p>
+              </div>
+            </div>
           </div>
           <a
             href="/apply"
