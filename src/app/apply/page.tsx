@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
-import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
+import { useState, useRef } from "react";
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
 import {
   Check,
   Upload,
@@ -11,41 +11,110 @@ import {
   CheckCircle2,
   AlertCircle,
   ChevronDown,
-} from 'lucide-react';
+} from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const UK_CITIES = [
-  'Aberdeen', 'Bedford', 'Billericay (Essex)', 'Birmingham', 'Bristol', 'Cardiff',
-  'Chelmsford', 'Cheltenham', 'Chester', 'Chichester', 'Colchester', 'Coventry',
-  'Derby', 'Dundee', 'Evesham', 'Exeter', 'Glasgow', 'Guildford', 'Herne Bay',
-  'Hinckley', 'Hull', 'Inverness', 'Leicester', 'Leeds', 'Liverpool',
-  'London - Aldgate', 'London - Camden', 'London - Edgware', 'London - Greenwich',
-  'London - Harlesden', 'London - Hounslow', 'Loughborough', 'Manchester', 'Mansfield',
-  'Margate', 'Milton Keynes', 'Newcastle', 'Newport', 'Northampton', 'Nottingham',
-  'Peterborough', 'Plymouth', 'Portsmouth/Southsea', 'Sheffield', 'Southend',
-  'Solihull', 'Southampton', 'St Albans', 'Walsall', 'Wolverhampton', 'Worthing',
-  'Thanet', 'Swansea', 'Wrexham', 'Winchester', 'Worcester',
+  "Aberdeen",
+  "Bedford",
+  "Billericay (Essex)",
+  "Birmingham",
+  "Bristol",
+  "Cardiff",
+  "Chelmsford",
+  "Cheltenham",
+  "Chester",
+  "Chichester",
+  "Colchester",
+  "Coventry",
+  "Derby",
+  "Dundee",
+  "Evesham",
+  "Exeter",
+  "Glasgow",
+  "Guildford",
+  "Herne Bay",
+  "Hinckley",
+  "Hull",
+  "Inverness",
+  "Leicester",
+  "Leeds",
+  "Liverpool",
+  "London - Aldgate",
+  "London - Camden",
+  "London - Edgware",
+  "London - Greenwich",
+  "London - Harlesden",
+  "London - Hounslow",
+  "Loughborough",
+  "Manchester",
+  "Mansfield",
+  "Margate",
+  "Milton Keynes",
+  "Newcastle",
+  "Newport",
+  "Northampton",
+  "Nottingham",
+  "Peterborough",
+  "Plymouth",
+  "Portsmouth/Southsea",
+  "Sheffield",
+  "Southend",
+  "Solihull",
+  "Southampton",
+  "St Albans",
+  "Walsall",
+  "Wolverhampton",
+  "Worthing",
+  "Thanet",
+  "Swansea",
+  "Wrexham",
+  "Winchester",
+  "Worcester",
 ];
 
 const HEARD_ABOUT_OPTIONS = [
-  'Instagram', 'TikTok', 'Facebook', 'Twitter/X',
-  'Direct Message from your page', 'Friends / Word of mouth',
-  'Adverts', 'Met a shot-girl!', 'Headhunter', 'Trade shows / Exhibitions',
+  "Instagram",
+  "TikTok",
+  "Facebook",
+  "Twitter/X",
+  "Direct Message from your page",
+  "Friends / Word of mouth",
+  "Adverts",
+  "Met a shot-girl!",
+  "Headhunter",
+  "Trade shows / Exhibitions",
 ];
 
-const WEBHOOK_URL = 'https://n8n.veltraai.net/webhook/web-form-milli';
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-const ALLOWED_ID_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
+const GENDER_OPTIONS = ["Female", "Male", "Non-binary", "Prefer not to say"];
 
-const SLIDE_LABELS = ['Personal', 'Location', 'Photos', 'Experience', 'Declarations'];
+const WEBHOOK_URL = "https://n8n.veltraai.net/webhook/web-form-milli";
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_PHOTO_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
+const ALLOWED_ID_TYPES = ["image/jpeg", "image/jpg", "image/png"];
+
+// Brand colour — every accent in the form uses this
+const B = "#FDB8D7";
+
+const SLIDE_LABELS = [
+  "Personal",
+  "Location",
+  "Photos",
+  "Experience",
+  "Declarations",
+];
 const SLIDE_TITLES = [
-  'Personal Information',
-  'Location & Availability',
-  'Photos & ID',
-  'Experience & Motivation',
-  'Final Declarations',
+  "Personal Information",
+  "Location & Availability",
+  "Photos & ID",
+  "Experience & Motivation",
+  "Final Declarations",
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -60,6 +129,7 @@ interface FileData {
 interface FormState {
   fullName: string;
   dob: string;
+  gender: string;
   email: string;
   phone: string;
   instagram: string;
@@ -69,7 +139,6 @@ interface FormState {
   isStudent: string;
   homeCity: string;
   doesDrive: string;
-  roleInterest: string;
   photos: FileData[];
   passportId: FileData | null;
   nonUkPassport: boolean;
@@ -86,14 +155,33 @@ interface FormState {
   heardAbout: string;
 }
 
-const INITIAL_STATE: FormState = {
-  fullName: '', dob: '', email: '', phone: '', instagram: '',
-  primaryCity: '', secondCity: '', manualCity: '',
-  isStudent: '', homeCity: '', doesDrive: '', roleInterest: '',
-  photos: [], passportId: null, nonUkPassport: false, shareCode: '',
-  priorExp: '', prevCompany: '', yearsExp: '',
-  understandRole: '', whyFit: '', salesExp: '', startDate: '',
-  selfEmployed: false, weekendWork: false, heardAbout: '',
+const INITIAL: FormState = {
+  fullName: "",
+  dob: "",
+  gender: "",
+  email: "",
+  phone: "",
+  instagram: "",
+  primaryCity: "",
+  secondCity: "",
+  manualCity: "",
+  isStudent: "",
+  homeCity: "",
+  doesDrive: "",
+  photos: [],
+  passportId: null,
+  nonUkPassport: false,
+  shareCode: "",
+  priorExp: "",
+  prevCompany: "",
+  yearsExp: "",
+  understandRole: "",
+  whyFit: "",
+  salesExp: "",
+  startDate: "",
+  selfEmployed: false,
+  weekendWork: false,
+  heardAbout: "",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -109,21 +197,53 @@ function isAtLeast18(dob: string): boolean {
 }
 
 function toBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result as string);
+    r.onerror = rej;
+    r.readAsDataURL(file);
   });
 }
 
+// ─── Shared focus handlers (brand ring on dark inputs) ────────────────────────
+
+const onFocusBrand = (
+  e: React.FocusEvent<
+    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  >,
+) => {
+  e.currentTarget.style.boxShadow = `0 0 0 2px ${B}55`;
+  e.currentTarget.style.borderColor = B;
+};
+const onBlurBrand = (
+  e: React.FocusEvent<
+    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  >,
+) => {
+  e.currentTarget.style.boxShadow = "";
+  e.currentTarget.style.borderColor = "";
+};
+
 // ─── UI Primitives ────────────────────────────────────────────────────────────
 
-function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
+function FieldLabel({
+  children,
+  required,
+}: {
+  children: React.ReactNode;
+  required?: boolean;
+}) {
   return (
     <label className="block text-sm font-semibold text-gray-300 mb-1.5">
       {children}
-      {required && <span className="text-pink-400 ml-0.5">*</span>}
+      {required && (
+        <span
+          style={{ color: B }}
+          className="ml-0.5"
+        >
+          *
+        </span>
+      )}
     </label>
   );
 }
@@ -139,7 +259,11 @@ function FieldError({ message }: { message?: string }) {
 }
 
 function TextInput({
-  value, onChange, placeholder = '', type = 'text', disabled = false,
+  value,
+  onChange,
+  placeholder = "",
+  type = "text",
+  disabled = false,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -154,17 +278,21 @@ function TextInput({
       placeholder={placeholder}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
-      style={{ colorScheme: 'dark' }}
+      style={{ colorScheme: "dark" }}
       className="w-full px-3 py-2.5 border border-[#2a2a2a] rounded-xl text-sm
-        bg-[#1a1a1a] text-white
-        focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent
-        placeholder:text-gray-600 disabled:opacity-50 transition-all"
+        bg-[#1a1a1a] text-white placeholder:text-gray-600
+        focus:outline-none disabled:opacity-50 transition-all"
+      onFocus={onFocusBrand}
+      onBlur={onBlurBrand}
     />
   );
 }
 
 function TextareaInput({
-  value, onChange, placeholder = '', rows = 4,
+  value,
+  onChange,
+  placeholder = "",
+  rows = 4,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -178,15 +306,19 @@ function TextareaInput({
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
       className="w-full px-3 py-2.5 border border-[#2a2a2a] rounded-xl text-sm
-        bg-[#1a1a1a] text-white
-        focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent
-        placeholder:text-gray-600 resize-none transition-all"
+        bg-[#1a1a1a] text-white placeholder:text-gray-600
+        focus:outline-none resize-none transition-all"
+      onFocus={onFocusBrand}
+      onBlur={onBlurBrand}
     />
   );
 }
 
 function SelectInput({
-  value, onChange, options, placeholder = 'Select…',
+  value,
+  onChange,
+  options,
+  placeholder = "Select…",
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -198,14 +330,26 @@ function SelectInput({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ colorScheme: 'dark' }}
+        style={{ colorScheme: "dark" }}
         className="w-full appearance-none px-3 py-2.5 border border-[#2a2a2a] rounded-xl text-sm
-          bg-[#1a1a1a] text-white
-          focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
+          bg-[#1a1a1a] text-white focus:outline-none transition-all"
+        onFocus={onFocusBrand}
+        onBlur={onBlurBrand}
       >
-        <option value="" className="text-gray-500">{placeholder}</option>
+        <option
+          value=""
+          className="text-gray-500"
+        >
+          {placeholder}
+        </option>
         {options.map((opt) => (
-          <option key={opt} value={opt} className="text-white bg-[#1a1a1a]">{opt}</option>
+          <option
+            key={opt}
+            value={opt}
+            className="text-white bg-[#1a1a1a]"
+          >
+            {opt}
+          </option>
         ))}
       </select>
       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
@@ -213,21 +357,32 @@ function SelectInput({
   );
 }
 
-function YesNoToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function YesNoToggle({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <div className="flex gap-2">
-      {(['yes', 'no'] as const).map((opt) => (
+      {(["yes", "no"] as const).map((opt) => (
         <button
           key={opt}
           type="button"
           onClick={() => onChange(opt)}
+          style={
+            value === opt
+              ? { backgroundColor: B, borderColor: B, color: "#1a0a10" }
+              : {}
+          }
           className={`px-6 py-2 rounded-xl text-sm font-semibold border transition-all ${
             value === opt
-              ? 'bg-pink-500 text-white border-pink-500 shadow-sm shadow-pink-500/20'
-              : 'bg-[#1a1a1a] text-gray-400 border-[#2a2a2a] hover:border-pink-500 hover:text-pink-400'
+              ? "shadow-sm"
+              : "bg-[#1a1a1a] text-gray-400 border-[#2a2a2a] hover:border-[#FDB8D7]/60 hover:text-gray-200"
           }`}
         >
-          {opt === 'yes' ? 'Yes' : 'No'}
+          {opt === "yes" ? "Yes" : "No"}
         </button>
       ))}
     </div>
@@ -235,7 +390,9 @@ function YesNoToggle({ value, onChange }: { value: string; onChange: (v: string)
 }
 
 function RadioGroup({
-  options, value, onChange,
+  options,
+  value,
+  onChange,
 }: {
   options: string[];
   value: string;
@@ -248,18 +405,27 @@ function RadioGroup({
           key={opt}
           type="button"
           onClick={() => onChange(opt)}
+          style={
+            value === opt ? { borderColor: B, backgroundColor: `${B}14` } : {}
+          }
           className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium text-left transition-all ${
             value === opt
-              ? 'border-pink-500 bg-pink-500/10 text-pink-300'
-              : 'border-[#2a2a2a] bg-[#1a1a1a] text-gray-400 hover:border-pink-500/50 hover:text-gray-300'
+              ? "text-white"
+              : "border-[#2a2a2a] bg-[#1a1a1a] text-gray-400 hover:border-[#FDB8D7]/40 hover:text-gray-300"
           }`}
         >
           <div
+            style={value === opt ? { borderColor: B } : {}}
             className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-              value === opt ? 'border-pink-500' : 'border-[#444]'
+              value === opt ? "" : "border-[#444]"
             }`}
           >
-            {value === opt && <div className="w-2 h-2 rounded-full bg-pink-500" />}
+            {value === opt && (
+              <div
+                style={{ backgroundColor: B }}
+                className="w-2 h-2 rounded-full"
+              />
+            )}
           </div>
           {opt}
         </button>
@@ -269,7 +435,10 @@ function RadioGroup({
 }
 
 function StyledCheckbox({
-  checked, onCheckedChange, id, label,
+  checked,
+  onCheckedChange,
+  id,
+  label,
 }: {
   checked: boolean;
   onCheckedChange: (v: boolean) => void;
@@ -282,17 +451,22 @@ function StyledCheckbox({
         id={id}
         checked={checked}
         onCheckedChange={(v) => onCheckedChange(!!v)}
+        style={checked ? { backgroundColor: B, borderColor: B } : {}}
         className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-          checked
-            ? 'bg-pink-500 border-pink-500'
-            : 'border-[#444] bg-[#1a1a1a] hover:border-pink-500'
+          checked ? "" : "border-[#444] bg-[#1a1a1a] hover:border-[#FDB8D7]/60"
         }`}
       >
         <CheckboxPrimitive.Indicator>
-          <Check className="w-3 h-3 text-white" strokeWidth={3} />
+          <Check
+            className="w-3 h-3 text-[#1a0a10]"
+            strokeWidth={3}
+          />
         </CheckboxPrimitive.Indicator>
       </CheckboxPrimitive.Root>
-      <label htmlFor={id} className="text-sm text-gray-300 cursor-pointer leading-relaxed">
+      <label
+        htmlFor={id}
+        className="text-sm text-gray-300 cursor-pointer leading-relaxed"
+      >
         {label}
       </label>
     </div>
@@ -304,18 +478,19 @@ function StyledCheckbox({
 export default function ApplyPage() {
   const [slide, setSlide] = useState(1);
   const [visible, setVisible] = useState(true);
-  const [form, setForm] = useState<FormState>(INITIAL_STATE);
+  const [form, setForm] = useState<FormState>(INITIAL);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [photoUploadError, setPhotoUploadError] = useState('');
-  const [idUploadError, setIdUploadError] = useState('');
+  const [submitError, setSubmitError] = useState("");
+  const [photoUploadError, setPhotoUploadError] = useState("");
+  const [idUploadError, setIdUploadError] = useState("");
 
-  const photosInputRef = useRef<HTMLInputElement>(null);
-  const idInputRef = useRef<HTMLInputElement>(null);
+  const photosRef = useRef<HTMLInputElement>(null);
+  const idRef = useRef<HTMLInputElement>(null);
 
-  const upd = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
+  const upd = (patch: Partial<FormState>) =>
+    setForm((f) => ({ ...f, ...patch }));
 
   function goToSlide(next: number) {
     setVisible(false);
@@ -323,48 +498,63 @@ export default function ApplyPage() {
       setSlide(next);
       setErrors({});
       setVisible(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }, 180);
   }
 
   function validateCurrentSlide(): Record<string, string> {
     const e: Record<string, string> = {};
     if (slide === 1) {
-      if (!form.fullName.trim()) e.fullName = 'Full name is required';
-      if (!form.dob) e.dob = 'Date of birth is required';
-      else if (!isAtLeast18(form.dob)) e.dob = 'You must be at least 18 years old to apply';
-      if (!form.email.trim()) e.email = 'Email address is required';
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Please enter a valid email address';
-      if (!form.phone.trim()) e.phone = 'Phone number is required';
-      if (!form.instagram.trim()) e.instagram = 'Instagram username is required';
+      if (!form.fullName.trim()) e.fullName = "Full name is required";
+      if (!form.dob) e.dob = "Date of birth is required";
+      else if (!isAtLeast18(form.dob))
+        e.dob = "You must be at least 18 years old to apply";
+      if (!form.gender) e.gender = "Please select your gender identity";
+      if (!form.email.trim()) e.email = "Email address is required";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+        e.email = "Please enter a valid email address";
+      if (!form.phone.trim()) e.phone = "Phone number is required";
+      if (!form.instagram.trim())
+        e.instagram = "Instagram username is required";
     }
     if (slide === 2) {
-      if (!form.primaryCity) e.primaryCity = 'Please select your primary location';
-      if (!form.isStudent) e.isStudent = 'Please select Yes or No';
-      if (form.isStudent === 'yes' && !form.homeCity.trim()) e.homeCity = 'Home city is required';
-      if (!form.doesDrive) e.doesDrive = 'Please select Yes or No';
-      if (!form.roleInterest) e.roleInterest = 'Please select what you are interested in';
+      if (!form.primaryCity)
+        e.primaryCity = "Please select your primary location";
+      if (!form.isStudent) e.isStudent = "Please select Yes or No";
+      if (form.isStudent === "yes" && !form.homeCity.trim())
+        e.homeCity = "Home city is required";
+      if (!form.doesDrive) e.doesDrive = "Please select Yes or No";
     }
     if (slide === 3) {
-      if (form.photos.length < 2) e.photos = 'Please upload at least 2 photos of yourself';
-      if (!form.passportId) e.passportId = 'Please upload your passport as photo ID';
-      if (form.nonUkPassport && !form.shareCode.trim()) e.shareCode = 'Share code is required for non-UK passport holders';
+      if (form.photos.length < 2)
+        e.photos = "Please upload at least 2 photos of yourself";
+      if (!form.passportId)
+        e.passportId = "Please upload your passport as photo ID";
+      if (form.nonUkPassport && !form.shareCode.trim())
+        e.shareCode = "Share code is required for non-UK passport holders";
     }
     if (slide === 4) {
-      if (!form.priorExp) e.priorExp = 'Please select Yes or No';
-      if (form.priorExp === 'yes') {
-        if (!form.prevCompany.trim()) e.prevCompany = 'Previous company / venue is required';
-        if (!form.yearsExp.trim()) e.yearsExp = 'Years of experience is required';
+      if (!form.priorExp) e.priorExp = "Please select Yes or No";
+      if (form.priorExp === "yes") {
+        if (!form.prevCompany.trim())
+          e.prevCompany = "Previous company / venue is required";
+        if (!form.yearsExp.trim())
+          e.yearsExp = "Years of experience is required";
       }
-      if (!form.understandRole.trim()) e.understandRole = 'This field is required';
-      if (!form.whyFit.trim()) e.whyFit = 'This field is required';
-      if (!form.salesExp.trim()) e.salesExp = 'This field is required';
-      if (!form.startDate) e.startDate = 'Please select an available start date';
+      if (!form.understandRole.trim())
+        e.understandRole = "This field is required";
+      if (!form.whyFit.trim()) e.whyFit = "This field is required";
+      if (!form.salesExp.trim()) e.salesExp = "This field is required";
+      if (!form.startDate)
+        e.startDate = "Please select an available start date";
     }
     if (slide === 5) {
-      if (!form.selfEmployed) e.selfEmployed = 'You must acknowledge this to proceed';
-      if (!form.weekendWork) e.weekendWork = 'You must acknowledge this to proceed';
-      if (!form.heardAbout) e.heardAbout = 'Please tell us how you heard about us';
+      if (!form.selfEmployed)
+        e.selfEmployed = "You must acknowledge this to proceed";
+      if (!form.weekendWork)
+        e.weekendWork = "You must acknowledge this to proceed";
+      if (!form.heardAbout)
+        e.heardAbout = "Please tell us how you heard about us";
     }
     return e;
   }
@@ -375,66 +565,72 @@ export default function ApplyPage() {
       setErrors(e);
       return;
     }
-    if (slide < 5) {
-      goToSlide(slide + 1);
-    } else {
-      handleSubmit();
-    }
-  }
-
-  function handleBack() {
-    if (slide > 1) goToSlide(slide - 1);
+    if (slide < 5) goToSlide(slide + 1);
+    else handleSubmit();
   }
 
   async function handlePhotoUpload(files: FileList | null) {
     if (!files) return;
-    setPhotoUploadError('');
+    setPhotoUploadError("");
     const current = [...form.photos];
     for (const file of Array.from(files)) {
       if (current.length >= 5) {
-        setPhotoUploadError('Maximum 5 photos allowed');
+        setPhotoUploadError("Maximum 5 photos allowed");
         break;
       }
       if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
-        setPhotoUploadError(`"${file.name}" is not allowed. Only JPG, PNG, or WEBP images are accepted.`);
+        setPhotoUploadError(
+          `"${file.name}" is not allowed. Only JPG, PNG, or WEBP images.`,
+        );
         continue;
       }
       if (file.size > MAX_FILE_SIZE) {
-        setPhotoUploadError(`"${file.name}" exceeds the 10MB size limit.`);
+        setPhotoUploadError(`"${file.name}" exceeds 10MB.`);
         continue;
       }
-      const base64 = await toBase64(file);
-      current.push({ name: file.name, base64, size: file.size, type: file.type });
+      current.push({
+        name: file.name,
+        base64: await toBase64(file),
+        size: file.size,
+        type: file.type,
+      });
     }
     upd({ photos: current });
-    if (photosInputRef.current) photosInputRef.current.value = '';
+    if (photosRef.current) photosRef.current.value = "";
   }
 
   async function handleIdUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
-    setIdUploadError('');
+    setIdUploadError("");
     const file = files[0];
     if (!ALLOWED_ID_TYPES.includes(file.type)) {
-      setIdUploadError('Only JPG or PNG images are accepted for photo ID.');
+      setIdUploadError("Only JPG or PNG accepted for photo ID.");
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      setIdUploadError('File must be under 10MB.');
+      setIdUploadError("File must be under 10MB.");
       return;
     }
-    const base64 = await toBase64(file);
-    upd({ passportId: { name: file.name, base64, size: file.size, type: file.type } });
-    if (idInputRef.current) idInputRef.current.value = '';
+    upd({
+      passportId: {
+        name: file.name,
+        base64: await toBase64(file),
+        size: file.size,
+        type: file.type,
+      },
+    });
+    if (idRef.current) idRef.current.value = "";
   }
 
   async function handleSubmit() {
     setSubmitting(true);
-    setSubmitError('');
+    setSubmitError("");
     try {
       const payload = {
         personalInfo: {
           fullName: form.fullName,
           dateOfBirth: form.dob,
+          gender: form.gender,
           email: form.email,
           phone: form.phone,
           instagram: form.instagram,
@@ -446,12 +642,19 @@ export default function ApplyPage() {
           isStudent: form.isStudent,
           homeCity: form.homeCity,
           doesDrive: form.doesDrive,
-          interestedIn: form.roleInterest,
         },
         photos: {
-          selfPhotos: form.photos.map((p) => ({ name: p.name, base64: p.base64, type: p.type })),
+          selfPhotos: form.photos.map((p) => ({
+            name: p.name,
+            base64: p.base64,
+            type: p.type,
+          })),
           passportId: form.passportId
-            ? { name: form.passportId.name, base64: form.passportId.base64, type: form.passportId.type }
+            ? {
+                name: form.passportId.name,
+                base64: form.passportId.base64,
+                type: form.passportId.type,
+              }
             : null,
           hasNonUkPassport: form.nonUkPassport,
           shareCode: form.shareCode,
@@ -472,14 +675,16 @@ export default function ApplyPage() {
         },
       };
       const res = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+      if (!res.ok) throw new Error(`Status ${res.status}`);
       setSubmitted(true);
     } catch {
-      setSubmitError('Something went wrong. Please try again or contact us directly.');
+      setSubmitError(
+        "Something went wrong. Please try again or contact us directly.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -491,10 +696,19 @@ export default function ApplyPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
         <div className="bg-[#111111] border border-[#1f1f1f] rounded-3xl shadow-2xl p-10 max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-pink-500/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-pink-500/30">
-            <CheckCircle2 className="w-10 h-10 text-pink-400" />
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{ backgroundColor: `${B}18`, boxShadow: `0 0 0 1px ${B}30` }}
+          >
+            <CheckCircle2
+              className="w-10 h-10"
+              style={{ color: B }}
+            />
           </div>
-          <p className="text-xs font-semibold text-pink-500 uppercase tracking-widest mb-3">
+          <p
+            className="text-xs font-semibold uppercase tracking-widest mb-3"
+            style={{ color: B }}
+          >
             Effervescent Agency
           </p>
           <h2 className="text-2xl font-bold text-white mb-4">
@@ -502,9 +716,6 @@ export default function ApplyPage() {
           </h2>
           <p className="text-gray-300 text-base leading-relaxed">
             Thank you! We&apos;ll be in touch soon 💕
-          </p>
-          <p className="text-gray-500 text-sm mt-3">
-            Keep an eye on your email and Instagram DMs.
           </p>
         </div>
       </div>
@@ -515,41 +726,62 @@ export default function ApplyPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
-      {/* Sticky Header */}
+      {/* Header */}
       <header className="bg-[#0d0d0d]/95 backdrop-blur-sm border-b border-[#1a1a1a] sticky top-0 z-20">
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <p className="text-lg font-bold tracking-tight leading-none">
-              <span className="text-pink-400">Effervescent</span>
-              <span className="text-white"> Agency</span>
-            </p>
-          </div>
-          <span className="text-xs font-semibold text-pink-400 bg-pink-500/10 px-3 py-1 rounded-full border border-pink-500/20">
+          <p className="text-lg font-bold tracking-tight leading-none">
+            <span style={{ color: B }}>Effervescent</span>
+            <span className="text-white"> Agency</span>
+          </p>
+          <span
+            className="text-xs font-semibold px-3 py-1 rounded-full border"
+            style={{
+              color: B,
+              backgroundColor: `${B}12`,
+              borderColor: `${B}35`,
+            }}
+          >
             {slide} / 5
           </span>
         </div>
       </header>
 
-      {/* Progress Section */}
+      {/* Progress */}
       <div className="max-w-xl mx-auto px-4 pt-5 pb-2">
         <div className="flex items-start justify-between mb-3">
           {Array.from({ length: 5 }, (_, i) => i + 1).map((s) => (
-            <div key={s} className="flex flex-col items-center gap-1 flex-1">
+            <div
+              key={s}
+              className="flex flex-col items-center gap-1 flex-1"
+            >
               <div
+                style={
+                  s <= slide
+                    ? {
+                        backgroundColor: B,
+                        color: "#1a0a10",
+                        boxShadow: s === slide ? `0 0 0 4px ${B}30` : undefined,
+                      }
+                    : {}
+                }
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                  s < slide
-                    ? 'bg-pink-500 text-white shadow-sm shadow-pink-500/30'
-                    : s === slide
-                    ? 'bg-pink-500 text-white ring-4 ring-pink-500/20 shadow-sm shadow-pink-500/30'
-                    : 'bg-[#1a1a1a] text-gray-600 border border-[#2a2a2a]'
+                  s <= slide
+                    ? ""
+                    : "bg-[#1a1a1a] text-gray-600 border border-[#2a2a2a]"
                 }`}
               >
-                {s < slide ? <Check className="w-4 h-4" strokeWidth={3} /> : s}
+                {s < slide ? (
+                  <Check
+                    className="w-4 h-4"
+                    strokeWidth={3}
+                  />
+                ) : (
+                  s
+                )}
               </div>
               <span
-                className={`text-[10px] font-medium text-center leading-none hidden sm:block ${
-                  s === slide ? 'text-pink-400' : 'text-gray-600'
-                }`}
+                style={s === slide ? { color: B } : {}}
+                className={`text-[10px] font-medium text-center leading-none hidden sm:block ${s === slide ? "" : "text-gray-600"}`}
               >
                 {SLIDE_LABELS[s - 1]}
               </span>
@@ -558,160 +790,244 @@ export default function ApplyPage() {
         </div>
         <div className="h-1 bg-[#1a1a1a] rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-pink-500 to-rose-400 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${((slide - 1) / 4) * 100}%` }}
+            style={{
+              width: `${((slide - 1) / 4) * 100}%`,
+              background: `linear-gradient(to right, ${B}, #e89fbe)`,
+            }}
+            className="h-full rounded-full transition-all duration-500 ease-out"
           />
         </div>
       </div>
 
       {/* Slide Card */}
       <div
-        className={`max-w-xl mx-auto px-4 py-4 transition-all duration-200 ease-out ${
-          visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-        }`}
+        className={`max-w-xl mx-auto px-4 py-4 transition-all duration-200 ease-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}
       >
-        <div className="bg-[#111111] rounded-3xl border border-[#1f1f1f] overflow-hidden">
+        <div className="bg-[#111111] rounded-3xl border border-[#1f1f1f] overflow-hidden shadow-2xl">
           {/* Card Header */}
-          <div className="bg-gradient-to-r from-pink-600 to-rose-500 px-6 py-5">
-            <p className="text-xs font-semibold text-pink-100/70 uppercase tracking-widest mb-1">
+          <div
+            className="px-6 py-5"
+            style={{ background: `linear-gradient(135deg, #2a0d1c, #3d1228)` }}
+          >
+            <p
+              className="text-xs font-semibold uppercase tracking-widest mb-1"
+              style={{ color: `${B}90` }}
+            >
               Step {slide} of 5
             </p>
-            <h2 className="text-xl font-bold text-white">{SLIDE_TITLES[slide - 1]}</h2>
+            <h2
+              className="text-xl font-bold"
+              style={{ color: B }}
+            >
+              {SLIDE_TITLES[slide - 1]}
+            </h2>
           </div>
 
           {/* Card Body */}
           <div className="px-6 py-6 space-y-5">
-
-            {/* ── Slide 1: Personal Info ─────────────────────────────────── */}
+            {/* ── Slide 1 ── */}
             {slide === 1 && (
               <>
                 <div>
                   <FieldLabel required>Full Name</FieldLabel>
-                  <TextInput value={form.fullName} onChange={(v) => upd({ fullName: v })} placeholder="Jane Smith" />
+                  <TextInput
+                    value={form.fullName}
+                    onChange={(v) => upd({ fullName: v })}
+                    placeholder="Jane Smith"
+                  />
                   <FieldError message={errors.fullName} />
                 </div>
-
                 <div>
                   <FieldLabel required>Date of Birth</FieldLabel>
-                  <TextInput type="date" value={form.dob} onChange={(v) => upd({ dob: v })} />
+                  <TextInput
+                    type="date"
+                    value={form.dob}
+                    onChange={(v) => upd({ dob: v })}
+                  />
                   <FieldError message={errors.dob} />
                 </div>
-
+                <div>
+                  <FieldLabel required>What do you identify as?</FieldLabel>
+                  <RadioGroup
+                    options={GENDER_OPTIONS}
+                    value={form.gender}
+                    onChange={(v) => upd({ gender: v })}
+                  />
+                  <FieldError message={errors.gender} />
+                </div>
                 <div>
                   <FieldLabel required>Email Address</FieldLabel>
-                  <TextInput type="email" value={form.email} onChange={(v) => upd({ email: v })} placeholder="jane@example.com" />
+                  <TextInput
+                    type="email"
+                    value={form.email}
+                    onChange={(v) => upd({ email: v })}
+                    placeholder="jane@example.com"
+                  />
                   <FieldError message={errors.email} />
                 </div>
-
                 <div>
                   <FieldLabel required>Mobile Phone / WhatsApp</FieldLabel>
-                  <TextInput type="tel" value={form.phone} onChange={(v) => upd({ phone: v })} placeholder="+44 7700 000000" />
+                  <TextInput
+                    type="tel"
+                    value={form.phone}
+                    onChange={(v) => upd({ phone: v })}
+                    placeholder="+44 7700 000000"
+                  />
                   <FieldError message={errors.phone} />
                 </div>
-
                 <div>
                   <FieldLabel required>Instagram Username</FieldLabel>
-                  <TextInput value={form.instagram} onChange={(v) => upd({ instagram: v })} placeholder="@username" />
+                  <TextInput
+                    value={form.instagram}
+                    onChange={(v) => upd({ instagram: v })}
+                    placeholder="@username"
+                  />
                   <FieldError message={errors.instagram} />
                 </div>
               </>
             )}
 
-            {/* ── Slide 2: Location & Availability ──────────────────────── */}
+            {/* ── Slide 2 ── */}
             {slide === 2 && (
               <>
                 <div>
                   <FieldLabel required>Primary Location</FieldLabel>
-                  <SelectInput value={form.primaryCity} onChange={(v) => upd({ primaryCity: v })} options={UK_CITIES} placeholder="Select your city…" />
+                  <SelectInput
+                    value={form.primaryCity}
+                    onChange={(v) => upd({ primaryCity: v })}
+                    options={UK_CITIES}
+                    placeholder="Select your city…"
+                  />
                   <FieldError message={errors.primaryCity} />
                 </div>
-
                 <div>
                   <FieldLabel>
-                    Second Choice Location{' '}
-                    <span className="text-gray-600 font-normal text-xs">(optional)</span>
+                    Second Choice Location{" "}
+                    <span className="text-gray-600 font-normal text-xs">
+                      (optional)
+                    </span>
                   </FieldLabel>
-                  <SelectInput value={form.secondCity} onChange={(v) => upd({ secondCity: v })} options={UK_CITIES} placeholder="Select second choice…" />
+                  <SelectInput
+                    value={form.secondCity}
+                    onChange={(v) => upd({ secondCity: v })}
+                    options={UK_CITIES}
+                    placeholder="Select second choice…"
+                  />
                 </div>
-
                 <div>
                   <FieldLabel>
-                    Location Not Listed?{' '}
-                    <span className="text-gray-600 font-normal text-xs">(optional)</span>
+                    Location Not Listed?{" "}
+                    <span className="text-gray-600 font-normal text-xs">
+                      (optional)
+                    </span>
                   </FieldLabel>
-                  <TextInput value={form.manualCity} onChange={(v) => upd({ manualCity: v })} placeholder="Enter your city manually" />
+                  <TextInput
+                    value={form.manualCity}
+                    onChange={(v) => upd({ manualCity: v })}
+                    placeholder="Enter your city manually"
+                  />
                 </div>
-
                 <div>
                   <FieldLabel required>Are you a student?</FieldLabel>
-                  <YesNoToggle value={form.isStudent} onChange={(v) => upd({ isStudent: v })} />
+                  <YesNoToggle
+                    value={form.isStudent}
+                    onChange={(v) => upd({ isStudent: v })}
+                  />
                   <FieldError message={errors.isStudent} />
-                  {form.isStudent === 'yes' && (
-                    <div className="mt-3 pl-4 border-l-2 border-pink-500/30">
+                  {form.isStudent === "yes" && (
+                    <div
+                      className="mt-3 pl-4 border-l-2 space-y-0"
+                      style={{ borderColor: `${B}40` }}
+                    >
                       <FieldLabel required>Home City</FieldLabel>
-                      <TextInput value={form.homeCity} onChange={(v) => upd({ homeCity: v })} placeholder="Your home city" />
+                      <TextInput
+                        value={form.homeCity}
+                        onChange={(v) => upd({ homeCity: v })}
+                        placeholder="Your home city"
+                      />
                       <FieldError message={errors.homeCity} />
                     </div>
                   )}
                 </div>
-
                 <div>
                   <FieldLabel required>Do you drive?</FieldLabel>
-                  <YesNoToggle value={form.doesDrive} onChange={(v) => upd({ doesDrive: v })} />
+                  <YesNoToggle
+                    value={form.doesDrive}
+                    onChange={(v) => upd({ doesDrive: v })}
+                  />
                   <FieldError message={errors.doesDrive} />
-                </div>
-
-                <div>
-                  <FieldLabel required>Interested in:</FieldLabel>
-                  <RadioGroup options={['Hostessing', 'Shot Sales', 'Both']} value={form.roleInterest} onChange={(v) => upd({ roleInterest: v })} />
-                  <FieldError message={errors.roleInterest} />
                 </div>
               </>
             )}
 
-            {/* ── Slide 3: Photos & ID ───────────────────────────────────── */}
+            {/* ── Slide 3 ── */}
             {slide === 3 && (
               <>
                 <div>
                   <FieldLabel required>Photos of Yourself</FieldLabel>
                   <p className="text-xs text-gray-500 mb-2">
-                    Upload 2–5 photos of yourself. JPG, PNG, or WEBP only. Max 10MB each.
+                    Upload 2–5 photos. JPG, PNG, or WEBP only. Max 10MB each.
                   </p>
                   <div
-                    onClick={() => photosInputRef.current?.click()}
-                    className="border-2 border-dashed border-[#2a2a2a] rounded-2xl p-6 text-center
-                      bg-[#141414] cursor-pointer hover:border-pink-500/50 hover:bg-[#161616] transition-all"
+                    onClick={() => photosRef.current?.click()}
+                    className="border-2 border-dashed border-[#2a2a2a] rounded-2xl p-6 text-center bg-[#141414] cursor-pointer transition-all"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = B;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "";
+                    }}
                   >
-                    <Upload className="w-8 h-8 text-pink-500/60 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-pink-400">Click to add photos</p>
+                    <Upload
+                      className="w-8 h-8 mx-auto mb-2"
+                      style={{ color: B }}
+                    />
+                    <p
+                      className="text-sm font-semibold"
+                      style={{ color: B }}
+                    >
+                      Click to add photos
+                    </p>
                     <p className="text-xs text-gray-600 mt-1">
                       {form.photos.length} / 5 uploaded
-                      {form.photos.length < 2 && ' (need at least 2)'}
+                      {form.photos.length < 2 && " (need at least 2)"}
                     </p>
                   </div>
                   <input
-                    ref={photosInputRef}
+                    ref={photosRef}
                     type="file"
                     accept=".jpg,.jpeg,.png,.webp"
                     multiple
                     hidden
                     onChange={(e) => handlePhotoUpload(e.target.files)}
                   />
-                  {photoUploadError && <FieldError message={photoUploadError} />}
+                  {photoUploadError && (
+                    <FieldError message={photoUploadError} />
+                  )}
                   <FieldError message={errors.photos} />
-
                   {form.photos.length > 0 && (
                     <div className="mt-3 grid grid-cols-3 gap-2">
                       {form.photos.map((p, i) => (
-                        <div key={i} className="relative rounded-xl overflow-hidden bg-[#1a1a1a] aspect-square group">
+                        <div
+                          key={i}
+                          className="relative rounded-xl overflow-hidden bg-[#1a1a1a] aspect-square group"
+                        >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={p.base64} alt={p.name} className="w-full h-full object-cover" />
+                          <img
+                            src={p.base64}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                          />
                           <button
                             type="button"
-                            onClick={() => upd({ photos: form.photos.filter((_, idx) => idx !== i) })}
-                            className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full
-                              flex items-center justify-center opacity-0 group-hover:opacity-100
-                              transition-opacity shadow-sm"
+                            onClick={() =>
+                              upd({
+                                photos: form.photos.filter(
+                                  (_, idx) => idx !== i,
+                                ),
+                              })
+                            }
+                            className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -722,32 +1038,59 @@ export default function ApplyPage() {
                 </div>
 
                 <div>
-                  <FieldLabel required>Upload Photo ID (Passport Only)</FieldLabel>
+                  <FieldLabel required>
+                    Upload Photo ID (Passport Only)
+                  </FieldLabel>
                   <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-3 text-xs text-amber-400 leading-relaxed">
-                    <strong>Note:</strong> We require a passport copy for Right to Work in UK check.
-                    If you have a non-UK passport, you will also need to provide your Share Code.{' '}
-                    <span className="text-amber-500/80">We do NOT accept driving licences.</span>
+                    <strong>Note:</strong> We require a passport copy for Right
+                    to Work in UK check. If you have a non-UK passport, you will
+                    also need to provide your Share Code.{" "}
+                    <span className="text-amber-500/80">
+                      We do NOT accept driving licences.
+                    </span>
                   </div>
-
                   {!form.passportId ? (
                     <div
-                      onClick={() => idInputRef.current?.click()}
-                      className="border-2 border-dashed border-[#2a2a2a] rounded-2xl p-6 text-center
-                        bg-[#141414] cursor-pointer hover:border-pink-500/50 hover:bg-[#161616] transition-all"
+                      onClick={() => idRef.current?.click()}
+                      className="border-2 border-dashed border-[#2a2a2a] rounded-2xl p-6 text-center bg-[#141414] cursor-pointer transition-all"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = B;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "";
+                      }}
                     >
-                      <Upload className="w-8 h-8 text-pink-500/60 mx-auto mb-2" />
-                      <p className="text-sm font-semibold text-pink-400">Click to upload passport</p>
-                      <p className="text-xs text-gray-600 mt-1">JPG or PNG only — max 10MB</p>
+                      <Upload
+                        className="w-8 h-8 mx-auto mb-2"
+                        style={{ color: B }}
+                      />
+                      <p
+                        className="text-sm font-semibold"
+                        style={{ color: B }}
+                      >
+                        Click to upload passport
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        JPG or PNG only — max 10MB
+                      </p>
                     </div>
                   ) : (
                     <div className="flex items-center gap-3 bg-[#1a1a1a] rounded-xl p-3 border border-[#2a2a2a]">
                       <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#222] flex-shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={form.passportId.base64} alt="Passport ID" className="w-full h-full object-cover" />
+                        <img
+                          src={form.passportId.base64}
+                          alt="Passport ID"
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-200 truncate">{form.passportId.name}</p>
-                        <p className="text-xs text-gray-500">{(form.passportId.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <p className="text-sm font-medium text-gray-200 truncate">
+                          {form.passportId.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {(form.passportId.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
                       </div>
                       <button
                         type="button"
@@ -759,7 +1102,7 @@ export default function ApplyPage() {
                     </div>
                   )}
                   <input
-                    ref={idInputRef}
+                    ref={idRef}
                     type="file"
                     accept=".jpg,.jpeg,.png"
                     hidden
@@ -773,13 +1116,22 @@ export default function ApplyPage() {
                   <StyledCheckbox
                     id="nonUkPassport"
                     checked={form.nonUkPassport}
-                    onCheckedChange={(v) => upd({ nonUkPassport: v, shareCode: v ? form.shareCode : '' })}
+                    onCheckedChange={(v) =>
+                      upd({
+                        nonUkPassport: v,
+                        shareCode: v ? form.shareCode : "",
+                      })
+                    }
                     label="I have a non-UK passport"
                   />
                   {form.nonUkPassport && (
                     <div className="pl-8">
                       <FieldLabel required>Share Code</FieldLabel>
-                      <TextInput value={form.shareCode} onChange={(v) => upd({ shareCode: v })} placeholder="e.g. W12 3AB 4CD" />
+                      <TextInput
+                        value={form.shareCode}
+                        onChange={(v) => upd({ shareCode: v })}
+                        placeholder="e.g. W12 3AB 4CD"
+                      />
                       <FieldError message={errors.shareCode} />
                     </div>
                   )}
@@ -787,65 +1139,107 @@ export default function ApplyPage() {
               </>
             )}
 
-            {/* ── Slide 4: Experience & Motivation ──────────────────────── */}
+            {/* ── Slide 4 ── */}
             {slide === 4 && (
               <>
                 <div>
-                  <FieldLabel required>Have you ever been a shot seller before?</FieldLabel>
-                  <YesNoToggle value={form.priorExp} onChange={(v) => upd({ priorExp: v })} />
+                  <FieldLabel required>
+                    Have you ever been a shot seller before?
+                  </FieldLabel>
+                  <YesNoToggle
+                    value={form.priorExp}
+                    onChange={(v) => upd({ priorExp: v })}
+                  />
                   <FieldError message={errors.priorExp} />
-                  {form.priorExp === 'yes' && (
-                    <div className="mt-3 pl-4 border-l-2 border-pink-500/30 space-y-4">
+                  {form.priorExp === "yes" && (
+                    <div
+                      className="mt-3 pl-4 border-l-2 space-y-4"
+                      style={{ borderColor: `${B}40` }}
+                    >
                       <div>
-                        <FieldLabel required>Previous Company / Venue</FieldLabel>
-                        <TextInput value={form.prevCompany} onChange={(v) => upd({ prevCompany: v })} placeholder="Company or venue name" />
+                        <FieldLabel required>
+                          Previous Company / Venue
+                        </FieldLabel>
+                        <TextInput
+                          value={form.prevCompany}
+                          onChange={(v) => upd({ prevCompany: v })}
+                          placeholder="Company or venue name"
+                        />
                         <FieldError message={errors.prevCompany} />
                       </div>
                       <div>
                         <FieldLabel required>Years of Experience</FieldLabel>
-                        <TextInput type="number" value={form.yearsExp} onChange={(v) => upd({ yearsExp: v })} placeholder="e.g. 2" />
+                        <TextInput
+                          type="number"
+                          value={form.yearsExp}
+                          onChange={(v) => upd({ yearsExp: v })}
+                          placeholder="e.g. 2"
+                        />
                         <FieldError message={errors.yearsExp} />
                       </div>
                     </div>
                   )}
                 </div>
-
-                <div>
-                  <FieldLabel required>What do you understand about being a shot-seller?</FieldLabel>
-                  <TextareaInput value={form.understandRole} onChange={(v) => upd({ understandRole: v })} placeholder="Describe your understanding of the role…" />
-                  <FieldError message={errors.understandRole} />
-                </div>
-
-                <div>
-                  <FieldLabel required>Why do you think you&apos;ll be a good fit for the role?</FieldLabel>
-                  <TextareaInput value={form.whyFit} onChange={(v) => upd({ whyFit: v })} placeholder="Tell us why you'd be great for this role…" />
-                  <FieldError message={errors.whyFit} />
-                </div>
-
                 <div>
                   <FieldLabel required>
-                    What sales &amp; customer service experience do you have? How will this help in a shot-sales role?
+                    What do you understand about being a shot-seller?
                   </FieldLabel>
-                  <TextareaInput value={form.salesExp} onChange={(v) => upd({ salesExp: v })} placeholder="Describe your relevant experience…" />
+                  <TextareaInput
+                    value={form.understandRole}
+                    onChange={(v) => upd({ understandRole: v })}
+                    placeholder="Describe your understanding of the role…"
+                  />
+                  <FieldError message={errors.understandRole} />
+                </div>
+                <div>
+                  <FieldLabel required>
+                    Why do you think you&apos;ll be a good fit for the role?
+                  </FieldLabel>
+                  <TextareaInput
+                    value={form.whyFit}
+                    onChange={(v) => upd({ whyFit: v })}
+                    placeholder="Tell us why you'd be great for this role…"
+                  />
+                  <FieldError message={errors.whyFit} />
+                </div>
+                <div>
+                  <FieldLabel required>
+                    What sales &amp; customer service experience do you have?
+                  </FieldLabel>
+                  <TextareaInput
+                    value={form.salesExp}
+                    onChange={(v) => upd({ salesExp: v })}
+                    placeholder="Describe your relevant experience…"
+                  />
                   <FieldError message={errors.salesExp} />
                 </div>
-
                 <div>
-                  <FieldLabel required>How soon are you available to start?</FieldLabel>
-                  <TextInput type="date" value={form.startDate} onChange={(v) => upd({ startDate: v })} />
+                  <FieldLabel required>
+                    How soon are you available to start?
+                  </FieldLabel>
+                  <TextInput
+                    type="date"
+                    value={form.startDate}
+                    onChange={(v) => upd({ startDate: v })}
+                  />
                   <FieldError message={errors.startDate} />
                 </div>
               </>
             )}
 
-            {/* ── Slide 5: Final Declarations ────────────────────────────── */}
+            {/* ── Slide 5 ── */}
             {slide === 5 && (
               <>
-                <div className="bg-pink-500/5 border border-pink-500/15 rounded-2xl p-5 space-y-5">
-                  <p className="text-sm font-bold text-pink-300">
+                <div
+                  className="rounded-2xl p-5 space-y-5 border"
+                  style={{ backgroundColor: `${B}08`, borderColor: `${B}20` }}
+                >
+                  <p
+                    className="text-sm font-bold"
+                    style={{ color: B }}
+                  >
                     Please read and tick each box to confirm:
                   </p>
-
                   <div>
                     <StyledCheckbox
                       id="selfEmployed"
@@ -853,14 +1247,15 @@ export default function ApplyPage() {
                       onCheckedChange={(v) => upd({ selfEmployed: v })}
                       label={
                         <span>
-                          I understand this is{' '}
-                          <strong className="text-white">self-employed work, NOT employment</strong>
+                          I understand this is{" "}
+                          <strong className="text-white">
+                            self-employed work, NOT employment
+                          </strong>
                         </span>
                       }
                     />
                     <FieldError message={errors.selfEmployed} />
                   </div>
-
                   <div>
                     <StyledCheckbox
                       id="weekendWork"
@@ -868,21 +1263,26 @@ export default function ApplyPage() {
                       onCheckedChange={(v) => upd({ weekendWork: v })}
                       label={
                         <span>
-                          I understand this is predominantly{' '}
-                          <strong className="text-white">weekend / night time work</strong>
+                          I understand this is predominantly{" "}
+                          <strong className="text-white">
+                            weekend / night time work
+                          </strong>
                         </span>
                       }
                     />
                     <FieldError message={errors.weekendWork} />
                   </div>
                 </div>
-
                 <div>
                   <FieldLabel required>How did you hear about us?</FieldLabel>
-                  <SelectInput value={form.heardAbout} onChange={(v) => upd({ heardAbout: v })} options={HEARD_ABOUT_OPTIONS} placeholder="Select an option…" />
+                  <SelectInput
+                    value={form.heardAbout}
+                    onChange={(v) => upd({ heardAbout: v })}
+                    options={HEARD_ABOUT_OPTIONS}
+                    placeholder="Select an option…"
+                  />
                   <FieldError message={errors.heardAbout} />
                 </div>
-
                 {submitError && (
                   <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -897,34 +1297,30 @@ export default function ApplyPage() {
           <div className="px-6 py-4 border-t border-[#1a1a1a] flex justify-between items-center">
             <button
               type="button"
-              onClick={handleBack}
+              onClick={() => slide > 1 && goToSlide(slide - 1)}
               disabled={slide === 1}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
-                border border-[#2a2a2a] text-gray-400 bg-[#141414]
-                hover:border-pink-500/50 hover:text-pink-400
-                disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-[#2a2a2a] text-gray-400 bg-[#141414] hover:border-[#FDB8D7]/50 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft className="w-4 h-4" />
               Back
             </button>
-
             <button
               type="button"
               onClick={handleNext}
               disabled={submitting}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold
-                bg-gradient-to-r from-pink-500 to-rose-500 text-white
-                hover:from-pink-600 hover:to-rose-600
-                shadow-lg shadow-pink-500/20 hover:shadow-pink-500/30
-                disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              style={{
+                background: `linear-gradient(135deg, ${B}, #e89fbe)`,
+                color: "#1a0a10",
+              }}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90"
             >
               {submitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[#1a0a10]/30 border-t-[#1a0a10] rounded-full animate-spin" />
                   Submitting…
                 </>
               ) : slide === 5 ? (
-                'Submit Application'
+                "Submit Application"
               ) : (
                 <>
                   Next
@@ -936,7 +1332,8 @@ export default function ApplyPage() {
         </div>
 
         <p className="text-center text-xs text-gray-700 mt-4 pb-4">
-          Your information is handled securely and will only be used for your application.
+          Your information is handled securely and will only be used for your
+          application.
         </p>
       </div>
     </div>

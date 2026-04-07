@@ -6,7 +6,11 @@
       "Bash(npx next:*)",
       "Bash(npm install:*)",
       "Bash(npm run:*)",
-      "Bash(node_modules/.bin/tsc --noEmit)"
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(sed:*)",
+      "Bash(powershell -Command \"\\(Get-Content src/app/candidates/CandidatesDashboard.tsx\\) -replace 'text-pink-400', 'text-[#FDB8D7]' | Set-Content src/app/candidates/CandidatesDashboard.tsx\")",
+      "Bash(powershell -Command \"\\(Get-Content 'src/app/candidates/CandidatesDashboard.tsx'\\) -replace 'text-pink-400', 'text-[#FDB8D7]' | Set-Content 'src/app/candidates/CandidatesDashboard.tsx'\")",
+      "Bash(node -e ':*)"
     ]
   }
 }

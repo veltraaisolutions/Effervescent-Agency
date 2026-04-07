@@ -87,7 +87,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-3">
-      <h4 className="text-xs font-bold text-pink-400 uppercase tracking-widest border-b border-[#1f1f1f] pb-2">
+      <h4 className="text-xs font-bold text-[#FDB8D7] uppercase tracking-widest border-b border-[#1f1f1f] pb-2">
         {title}
       </h4>
       <div className="grid grid-cols-2 gap-x-6 gap-y-3">
@@ -209,7 +209,7 @@ function CandidateModal({
         setActionError(result.error);
       } else {
         setShowRejectModal(false);
-        onStatusChange(candidate.id, { status: 'rejected' });
+        onStatusChange(candidate.id, { status: 'rejected', rejection_reason: reason });
       }
       setActiveAction(null);
     });
@@ -270,25 +270,38 @@ function CandidateModal({
       {/* Panel */}
       <div className="relative bg-[#111111] border border-[#1f1f1f] rounded-3xl w-full max-w-2xl my-4 shadow-2xl">
         {/* Header */}
-        <div className="bg-gradient-to-r from-pink-600 to-rose-500 px-6 py-5 rounded-t-3xl flex items-start justify-between">
-          <div>
-            <p className="text-xs font-semibold text-pink-100/70 uppercase tracking-widest mb-1">
-              Candidate Profile
-            </p>
-            <h2 className="text-xl font-bold text-white">{candidate.full_name}</h2>
-            <div className="flex items-center gap-3 mt-2">
-              <StatusBadge status={candidate.status} />
-              <span className="text-xs text-pink-100/60">
-                Applied {formatDate(candidate.created_at)}
-              </span>
+        <div className="rounded-t-3xl overflow-hidden">
+          <div className="bg-gradient-to-r from-[#b05c82] to-[#c8709a] px-6 py-5 flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1">
+                Candidate Profile
+              </p>
+              <h2 className="text-xl font-bold text-white">{candidate.full_name}</h2>
+              <div className="flex items-center gap-3 mt-2">
+                <StatusBadge status={candidate.status} />
+                <span className="text-xs text-white/50">
+                  Applied {formatDate(candidate.created_at)}
+                </span>
+              </div>
             </div>
+            <button
+              onClick={onClose}
+              className="text-white/60 hover:text-white transition-colors p-1 mt-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white/60 hover:text-white transition-colors p-1 mt-1"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {candidate.status === 'rejected' && (
+            <div className="bg-[#1a0a0a] border-b border-red-900/40 px-6 py-3 flex items-start gap-3">
+              <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[11px] font-bold text-red-400 uppercase tracking-wider">Rejection Reason</p>
+                <p className="text-sm text-red-200 mt-0.5">
+                  {candidate.rejection_reason ?? <span className="text-red-400/50 italic">No reason recorded</span>}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Body */}
@@ -402,7 +415,7 @@ function CandidateModal({
             <InfoRow label="Email" value={candidate.email} />
             <InfoRow label="Phone" value={candidate.phone} />
             <InfoRow label="Instagram" value={candidate.instagram} />
-            <InfoRow label="Date of Birth" value={candidate.available_from ? '' : ''} />
+            <InfoRow label="Gender" value={candidate.gender} />
           </Section>
 
           {/* Location */}
@@ -413,13 +426,12 @@ function CandidateModal({
             <InfoRow label="Is Student" value={candidate.is_student ? 'Yes' : 'No'} />
             {candidate.is_student && <InfoRow label="Home City" value={candidate.home_city} />}
             <InfoRow label="Drives" value={candidate.does_drive ? 'Yes' : 'No'} />
-            <InfoRow label="Interested In" value={candidate.role_interest} />
           </Section>
 
           {/* Photos */}
           {candidate.photo_urls && candidate.photo_urls.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-pink-400 uppercase tracking-widest border-b border-[#1f1f1f] pb-2">
+              <h4 className="text-xs font-bold text-[#FDB8D7] uppercase tracking-widest border-b border-[#1f1f1f] pb-2">
                 Photos ({candidate.photo_urls.length})
               </h4>
               <div className="grid grid-cols-3 gap-2">
@@ -441,7 +453,7 @@ function CandidateModal({
 
           {/* Passport / ID */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-pink-400 uppercase tracking-widest border-b border-[#1f1f1f] pb-2">
+            <h4 className="text-xs font-bold text-[#FDB8D7] uppercase tracking-widest border-b border-[#1f1f1f] pb-2">
               Identity & Right to Work
             </h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-3">
@@ -500,7 +512,7 @@ function CandidateModal({
 
           {/* Long-form answers */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold text-pink-400 uppercase tracking-widest border-b border-[#1f1f1f] pb-2">
+            <h4 className="text-xs font-bold text-[#FDB8D7] uppercase tracking-widest border-b border-[#1f1f1f] pb-2">
               Written Answers
             </h4>
             {candidate.understand_role && (
@@ -586,7 +598,7 @@ function RowActions({
       const result = await rejectCandidate({ id: candidate.id, full_name: candidate.full_name, phone: candidate.phone }, reason);
       if (!result.error) {
         setShowRejectModal(false);
-        onStatusChange(candidate.id, { status: 'rejected' });
+        onStatusChange(candidate.id, { status: 'rejected', rejection_reason: reason });
       }
       setActiveAction(null);
     });
@@ -758,7 +770,7 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
       window.alert(`Failed to reject: ${result.error}`);
       return;
     }
-    handleStatusChange(pendingReject.id, { status: 'rejected' });
+    handleStatusChange(pendingReject.id, { status: 'rejected', rejection_reason: reason });
     setPendingReject(null);
   }
 
@@ -807,8 +819,8 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
   function SortIcon({ k }: { k: SortKey }) {
     if (sortKey !== k) return <ChevronDown className="w-3 h-3 text-gray-600" />;
     return sortAsc
-      ? <ChevronUp className="w-3 h-3 text-pink-400" />
-      : <ChevronDown className="w-3 h-3 text-pink-400" />;
+      ? <ChevronUp className="w-3 h-3 text-[#FDB8D7]" />
+      : <ChevronDown className="w-3 h-3 text-[#FDB8D7]" />;
   }
 
   return (
@@ -825,14 +837,14 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div>
             <p className="text-lg font-bold tracking-tight leading-none">
-              <span className="text-pink-400">Effervescent</span>
+              <span style={{ color: '#FDB8D7' }}>Effervescent</span>
               <span className="text-white"> Agency</span>
             </p>
             <p className="text-xs text-gray-600 mt-0.5">Candidates Dashboard</p>
           </div>
           <a
             href="/apply"
-            className="text-xs text-gray-500 hover:text-pink-400 transition-colors"
+            className="text-xs text-gray-500 hover:text-[#FDB8D7] transition-colors"
           >
             → Apply Form
           </a>
@@ -843,8 +855,15 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          {/* Total card uses brand color */}
+          <div className="rounded-2xl border p-4 flex items-center gap-3" style={{ borderColor: '#FDB8D720', backgroundColor: '#FDB8D708' }}>
+            <Briefcase className="w-5 h-5 flex-shrink-0" style={{ color: '#FDB8D7' }} />
+            <div>
+              <p className="text-2xl font-bold leading-none" style={{ color: '#FDB8D7' }}>{counts.total}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Total</p>
+            </div>
+          </div>
           {[
-            { label: 'Total',         value: counts.total,        icon: Briefcase,   color: 'text-pink-400',    bg: 'bg-pink-500/10 border-pink-500/20'    },
             { label: 'Pending',       value: counts.pending,      icon: Clock,       color: 'text-yellow-400',  bg: 'bg-yellow-500/10 border-yellow-500/20' },
             { label: 'Invite Sent',   value: counts.inviteSent,   icon: Mail,        color: 'text-blue-400',    bg: 'bg-blue-500/10 border-blue-500/20'    },
             { label: 'Approved',      value: counts.approved,     icon: CheckCircle2,color: 'text-green-400',   bg: 'bg-green-500/10 border-green-500/20'  },
@@ -870,7 +889,10 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, email, phone, location…"
             className="flex-1 px-4 py-2.5 bg-[#111111] border border-[#1f1f1f] rounded-xl text-sm text-white
-              placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:border-transparent"
+            style={{ '--tw-ring-color': '#FDB8D7' } as React.CSSProperties}
+            onFocus={(e) => { e.currentTarget.style.boxShadow = '0 0 0 2px #FDB8D760'; e.currentTarget.style.borderColor = '#FDB8D7'; }}
+            onBlur={(e) => { e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = ''; }}
           />
           <div className="flex flex-wrap gap-2">
             {([
@@ -885,10 +907,11 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
               <button
                 key={value}
                 onClick={() => setStatusFilter(value)}
+                style={statusFilter === value ? { backgroundColor: '#FDB8D7', borderColor: '#FDB8D7', color: '#1a0a10' } : {}}
                 className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
                   statusFilter === value
-                    ? 'bg-pink-500 text-white border-pink-500'
-                    : 'bg-[#111111] text-gray-400 border-[#1f1f1f] hover:border-pink-500/50 hover:text-pink-400'
+                    ? ''
+                    : 'bg-[#111111] text-gray-400 border-[#1f1f1f] hover:border-[#FDB8D7]/50 hover:text-[#FDB8D7]'
                 }`}
               >
                 {label}
@@ -915,7 +938,7 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                         { label: 'Name', key: 'full_name' as SortKey },
                         { label: 'Contact', key: null },
                         { label: 'Location', key: null },
-                        { label: 'Role', key: null },
+                        { label: 'Gender', key: null },
                         { label: 'Status', key: 'status' as SortKey },
                         { label: 'Applied', key: 'created_at' as SortKey },
                         { label: '', key: null },
@@ -943,7 +966,7 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                         className="hover:bg-[#161616] cursor-pointer transition-colors group"
                       >
                         <td className="px-4 py-3">
-                          <p className="font-semibold text-white group-hover:text-pink-300 transition-colors">
+                          <p className="font-semibold text-white group-hover:text-[#FDB8D7] transition-colors">
                             {c.full_name}
                           </p>
                           {c.instagram && (
@@ -970,12 +993,17 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                             {c.is_student && <span className="flex items-center gap-0.5 text-xs"><GraduationCap className="w-3 h-3" /> Student</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{c.role_interest}</td>
+                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{c.gender ?? '—'}</td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <InlineStatusDropdown
                             candidate={c}
                             onSelect={(s) => handleStatusDirect(c, s)}
                           />
+                          {c.status === 'rejected' && c.rejection_reason && (
+                            <p className="text-[10px] text-red-400/70 italic mt-1 max-w-[160px] truncate" title={c.rejection_reason}>
+                              {c.rejection_reason}
+                            </p>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
                           <Calendar className="w-3 h-3 inline mr-1" />
@@ -986,7 +1014,7 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                             <RowActions candidate={c} onStatusChange={handleStatusChange} />
                             <button
                               onClick={(e) => { e.stopPropagation(); setSelected(c); }}
-                              className="p-1.5 rounded-lg bg-[#1a1a1a] text-gray-500 hover:text-pink-400 hover:bg-pink-500/10 transition-colors"
+                              className="p-1.5 rounded-lg bg-[#1a1a1a] text-gray-500 hover:text-[#FDB8D7] hover:bg-[#FDB8D7]/10 transition-colors"
                               title="View"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -1021,13 +1049,16 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{c.primary_location}</span>
-                      <span>{c.role_interest}</span>
+                      {c.gender && <span>{c.gender}</span>}
                     </div>
+                    {c.status === 'rejected' && c.rejection_reason && (
+                      <p className="text-[10px] text-red-400/70 italic mt-1">{c.rejection_reason}</p>
+                    )}
                     <div className="flex items-center gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                       <RowActions candidate={c} onStatusChange={handleStatusChange} />
                       <button
                         onClick={(e) => { e.stopPropagation(); setSelected(c); }}
-                        className="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-pink-400 transition-colors"
+                        className="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-[#FDB8D7] transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" /> View
                       </button>

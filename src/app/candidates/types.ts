@@ -5,13 +5,15 @@ export interface Candidate {
   email: string;
   phone: string;
   instagram: string | null;
+  dob: string | null;
+  gender: string | null;
   primary_location: string;
   second_location: string | null;
   manual_location: string | null;
   is_student: boolean;
   home_city: string | null;
   does_drive: boolean;
-  role_interest: string;
+  role_interest: string | null;
   photo_urls: string[];
   passport_url: string | null;
   has_non_uk_passport: boolean;
@@ -27,6 +29,7 @@ export interface Candidate {
   weekend_work: boolean;
   heard_about: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'trial_offered' | 'on-boarded';
+  rejection_reason: string | null;
   passport_valid: boolean | null;
   is_uk_passport: boolean | null;
   wa_sent_at: string | null;

@@ -33,7 +33,7 @@ export async function rejectCandidate(
 ): Promise<{ error?: string }> {
   const { error } = await supabase
     .from('milli_candidates')
-    .update({ status: 'rejected' })
+    .update({ status: 'rejected', rejection_reason: reason })
     .eq('id', candidate.id);
 
   if (error) return { error: error.message };
