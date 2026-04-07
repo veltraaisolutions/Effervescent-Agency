@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
 import {
@@ -9,7 +9,6 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
   AlertCircle,
   ChevronDown,
 } from "lucide-react";
@@ -493,6 +492,78 @@ function StyledCheckbox({
   );
 }
 
+// ─── Success Screen (with confetti) ──────────────────────────────────────────
+
+function SuccessScreen() {
+  useEffect(() => {
+    let frame: number;
+    let start: number | null = null;
+    const duration = 3500;
+
+    async function fire() {
+      const confetti = (await import("canvas-confetti")).default;
+
+      function burst(origin: { x: number; y: number }, angle: number) {
+        confetti({
+          particleCount: 60,
+          angle,
+          spread: 70,
+          origin,
+          colors: ["#FDB8D7", "#ffffff", "#f9a8d4", "#fce7f3", "#e879a0"],
+          scalar: 1.1,
+          gravity: 0.9,
+          drift: 0,
+        });
+      }
+
+      function loop(ts: number) {
+        if (!start) start = ts;
+        const elapsed = ts - start;
+        if (elapsed < duration) {
+          burst({ x: 0, y: 0.6 }, 60);
+          burst({ x: 1, y: 0.6 }, 120);
+          frame = requestAnimationFrame((next) => {
+            setTimeout(() => loop(next), 350);
+          });
+        }
+      }
+
+      frame = requestAnimationFrame(loop);
+    }
+
+    fire();
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
+      <div className="bg-[#111111] border border-[#1f1f1f] rounded-3xl shadow-2xl p-10 max-w-md w-full text-center">
+        <div
+          className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg"
+          style={{ boxShadow: `0 0 0 2px ${B}40` }}
+        >
+          <Image
+            src="/logo1.jpeg"
+            alt="Effervescent Agency"
+            width={96}
+            height={96}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-3">
+          Application Submitted!
+        </h2>
+        <p className="text-gray-300 text-base leading-relaxed">
+          Thank you! We&apos;ll be in touch soon 💕
+        </p>
+        <p className="text-gray-500 text-sm mt-3">
+          Keep an eye on your email and Instagram DMs.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ApplyPage() {
@@ -715,32 +786,7 @@ export default function ApplyPage() {
 
   // ─── Success Screen ──────────────────────────────────────────────────────────
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-        <div className="bg-[#111111] border border-[#1f1f1f] rounded-3xl shadow-2xl p-10 max-w-md w-full text-center">
-          <div
-            className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg"
-            style={{ boxShadow: `0 0 0 2px ${B}40` }}
-          >
-            <Image
-              src="/logo1.jpeg"
-              alt="Effervescent Agency"
-              width={96}
-              height={96}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-3">
-            Application Submitted!
-          </h2>
-          <p className="text-gray-300 text-base leading-relaxed">
-            Thank you! We&apos;ll be in touch soon 💕
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (submitted) return <SuccessScreen />;
 
   // ─── Form Layout ─────────────────────────────────────────────────────────────
 
@@ -1027,7 +1073,7 @@ export default function ApplyPage() {
                       Click to add photos
                     </p>
                     <p className="text-xs text-gray-600 mt-1">
-                      {form.photos.length} / 5 uploaded
+                      {form.photos.length} / 2 uploaded
                       {form.photos.length < 2 && " (need at least 2)"}
                     </p>
                   </div>

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useTransition, useRef } from 'react';
-import Image from 'next/image';
-import { createPortal } from 'react-dom';
+import { useState, useTransition, useRef } from "react";
+import Image from "next/image";
+import { createPortal } from "react-dom";
 import {
   X,
   CheckCircle2,
@@ -24,8 +24,8 @@ import {
   ThumbsUp,
   ThumbsDown,
   Award,
-} from 'lucide-react';
-import { Candidate } from './types';
+} from "lucide-react";
+import { Candidate } from "./types";
 import {
   approveCandidate,
   rejectCandidate,
@@ -33,43 +33,47 @@ import {
   markTrialSuccessful,
   markTrialFailed,
   changeStatus,
-} from './actions';
+} from "./actions";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric',
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   });
 }
 
-const STATUS_LABEL: Record<Candidate['status'], string> = {
-  pending: 'Pending',
-  approved: 'Approved',
-  rejected: 'Rejected',
-  trial_offered: 'Trial Offered',
-  'on-boarded': 'Onboarded',
+const STATUS_LABEL: Record<Candidate["status"], string> = {
+  pending: "Pending",
+  approved: "Approved",
+  rejected: "Rejected",
+  trial_offered: "Trial Offered",
+  "on-boarded": "Onboarded",
 };
 
 // Logical next statuses for each status
-const STATUS_TRANSITIONS: Record<Candidate['status'], Candidate['status'][]> = {
-  pending:       ['approved', 'rejected'],
-  approved:      ['trial_offered', 'rejected'],
-  trial_offered: ['on-boarded', 'rejected'],
-  'on-boarded':  [],            // terminal
-  rejected:      ['pending'],   // allow reconsideration
+const STATUS_TRANSITIONS: Record<Candidate["status"], Candidate["status"][]> = {
+  pending: ["approved", "rejected"],
+  approved: ["trial_offered", "rejected"],
+  trial_offered: ["on-boarded", "rejected"],
+  "on-boarded": [], // terminal
+  rejected: ["pending"], // allow reconsideration
 };
 
-function StatusBadge({ status }: { status: Candidate['status'] }) {
-  const map: Record<Candidate['status'], string> = {
-    pending: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/25',
-    approved: 'bg-green-500/15 text-green-400 border-green-500/25',
-    rejected: 'bg-red-500/15 text-red-400 border-red-500/25',
-    trial_offered: 'bg-purple-500/15 text-purple-400 border-purple-500/25',
-    'on-boarded': 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
+function StatusBadge({ status }: { status: Candidate["status"] }) {
+  const map: Record<Candidate["status"], string> = {
+    pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25",
+    approved: "bg-green-500/15 text-green-400 border-green-500/25",
+    rejected: "bg-red-500/15 text-red-400 border-red-500/25",
+    trial_offered: "bg-purple-500/15 text-purple-400 border-purple-500/25",
+    "on-boarded": "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
   };
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${map[status]}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${map[status]}`}
+    >
       {STATUS_LABEL[status]}
     </span>
   );
@@ -79,21 +83,27 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   if (!value && value !== false && value !== 0) return null;
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{label}</span>
+      <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+        {label}
+      </span>
       <span className="text-sm text-gray-200">{value}</span>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-3">
       <h4 className="text-xs font-bold text-[#FDB8D7] uppercase tracking-widest border-b border-[#1f1f1f] pb-2">
         {title}
       </h4>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-        {children}
-      </div>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-3">{children}</div>
     </div>
   );
 }
@@ -101,14 +111,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 // ─── Reject Reason Modal ───────────────────────────────────────────────────────
 
 const REJECT_REASONS = [
-  'Profile doesn\'t meet our requirements',
-  'Insufficient experience',
-  'Location not currently covered',
-  'Incomplete or unclear application',
-  'Age requirement not met',
-  'Position no longer available',
-  'Duplicate application',
-  'Failed to respond / uncontactable',
+  "Unsuitable for role",
+  "No right-to-work",
+  "Non-responsive",
+  "Unsuccessful trial shift",
+  "Unsuccessful interview",
+  "Non-attendance to interview",
+  "Non-attendance to trial shift",
+  "Underage (Below 18)",
 ];
 
 function RejectReasonModal({
@@ -120,14 +130,19 @@ function RejectReasonModal({
   onCancel: () => void;
   isPending: boolean;
 }) {
-  const [selected, setSelected] = useState('');
+  const [selected, setSelected] = useState("");
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onCancel}
+      />
       <div className="relative bg-[#111111] border border-[#2a2a2a] rounded-2xl w-full max-w-sm shadow-2xl p-6">
-        <h3 className="text-white font-semibold text-base mb-1">Reason for rejection</h3>
-        <p className="text-gray-500 text-xs mb-4">Select a reason — this will be sent to the webhook.</p>
+        <h3 className="text-white font-semibold text-base mb-1">
+          Reason for rejection
+        </h3>
+        <p className="text-gray-500 text-xs mb-4">Select a reason</p>
         <div className="space-y-2 mb-5">
           {REJECT_REASONS.map((reason) => (
             <button
@@ -135,8 +150,8 @@ function RejectReasonModal({
               onClick={() => setSelected(reason)}
               className={`w-full text-left px-3 py-2.5 rounded-xl text-sm border transition-all ${
                 selected === reason
-                  ? 'bg-red-500/20 border-red-500/50 text-red-300'
-                  : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20'
+                  ? "bg-red-500/20 border-red-500/50 text-red-300"
+                  : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20"
               }`}
             >
               {reason}
@@ -158,9 +173,11 @@ function RejectReasonModal({
               hover:bg-red-500/30 hover:border-red-500/50
               disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
-            {isPending
-              ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
-              : <XCircle className="w-4 h-4" />}
+            {isPending ? (
+              <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+            ) : (
+              <XCircle className="w-4 h-4" />
+            )}
             Confirm Reject
           </button>
         </div>
@@ -181,80 +198,100 @@ function CandidateModal({
   onStatusChange: (id: string, patch: Partial<Candidate>) => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [actionError, setActionError] = useState('');
+  const [actionError, setActionError] = useState("");
   const [activeAction, setActiveAction] = useState<
-    'approve' | 'reject' | 'trial_offer' | 'trial_success' | 'trial_fail' | null
+    "approve" | "reject" | "trial_offer" | "trial_success" | "trial_fail" | null
   >(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
 
   function handleApprove() {
-    setActionError('');
-    setActiveAction('approve');
+    setActionError("");
+    setActiveAction("approve");
     startTransition(async () => {
       const result = await approveCandidate(candidate);
       if (result.error) {
         setActionError(result.error);
       } else {
-        onStatusChange(candidate.id, { status: 'approved' });
+        onStatusChange(candidate.id, { status: "approved" });
       }
       setActiveAction(null);
     });
   }
 
   function handleReject(reason: string) {
-    setActionError('');
-    setActiveAction('reject');
+    setActionError("");
+    setActiveAction("reject");
     startTransition(async () => {
-      const result = await rejectCandidate({ id: candidate.id, full_name: candidate.full_name, phone: candidate.phone }, reason);
+      const result = await rejectCandidate(
+        {
+          id: candidate.id,
+          full_name: candidate.full_name,
+          phone: candidate.phone,
+        },
+        reason,
+      );
       if (result.error) {
         setActionError(result.error);
       } else {
         setShowRejectModal(false);
-        onStatusChange(candidate.id, { status: 'rejected', rejection_reason: reason });
+        onStatusChange(candidate.id, {
+          status: "rejected",
+          rejection_reason: reason,
+        });
       }
       setActiveAction(null);
     });
   }
 
   function handleTrialOffer() {
-    setActionError('');
-    setActiveAction('trial_offer');
+    setActionError("");
+    setActiveAction("trial_offer");
     startTransition(async () => {
       const now = new Date().toISOString();
       const result = await markTrialOffered(candidate.id);
       if (result.error) {
         setActionError(result.error);
       } else {
-        onStatusChange(candidate.id, { status: 'trial_offered', trial_offered_at: now });
+        onStatusChange(candidate.id, {
+          status: "trial_offered",
+          trial_offered_at: now,
+        });
       }
       setActiveAction(null);
     });
   }
 
   function handleTrialSuccess() {
-    setActionError('');
-    setActiveAction('trial_success');
+    setActionError("");
+    setActiveAction("trial_success");
     startTransition(async () => {
       const now = new Date().toISOString();
       const result = await markTrialSuccessful(candidate.id);
       if (result.error) {
         setActionError(result.error);
       } else {
-        onStatusChange(candidate.id, { status: 'on-boarded', trial_success: true, onboarded_at: now });
+        onStatusChange(candidate.id, {
+          status: "on-boarded",
+          trial_success: true,
+          onboarded_at: now,
+        });
       }
       setActiveAction(null);
     });
   }
 
   function handleTrialFail() {
-    setActionError('');
-    setActiveAction('trial_fail');
+    setActionError("");
+    setActiveAction("trial_fail");
     startTransition(async () => {
       const result = await markTrialFailed(candidate.id);
       if (result.error) {
         setActionError(result.error);
       } else {
-        onStatusChange(candidate.id, { status: 'rejected', trial_success: false });
+        onStatusChange(candidate.id, {
+          status: "rejected",
+          trial_success: false,
+        });
       }
       setActiveAction(null);
     });
@@ -277,7 +314,9 @@ function CandidateModal({
               <p className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1">
                 Candidate Profile
               </p>
-              <h2 className="text-xl font-bold text-white">{candidate.full_name}</h2>
+              <h2 className="text-xl font-bold text-white">
+                {candidate.full_name}
+              </h2>
               <div className="flex items-center gap-3 mt-2">
                 <StatusBadge status={candidate.status} />
                 <span className="text-xs text-white/50">
@@ -292,13 +331,19 @@ function CandidateModal({
               <X className="w-5 h-5" />
             </button>
           </div>
-          {candidate.status === 'rejected' && (
+          {candidate.status === "rejected" && (
             <div className="bg-[#1a0a0a] border-b border-red-900/40 px-6 py-3 flex items-start gap-3">
               <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-[11px] font-bold text-red-400 uppercase tracking-wider">Rejection Reason</p>
+                <p className="text-[11px] font-bold text-red-400 uppercase tracking-wider">
+                  Rejection Reason
+                </p>
                 <p className="text-sm text-red-200 mt-0.5">
-                  {candidate.rejection_reason ?? <span className="text-red-400/50 italic">No reason recorded</span>}
+                  {candidate.rejection_reason ?? (
+                    <span className="text-red-400/50 italic">
+                      No reason recorded
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -307,9 +352,8 @@ function CandidateModal({
 
         {/* Body */}
         <div className="px-6 py-6 space-y-7 max-h-[70vh] overflow-y-auto">
-
           {/* Action Buttons */}
-          {candidate.status === 'pending' && (
+          {candidate.status === "pending" && (
             <div className="flex gap-3">
               <button
                 onClick={handleApprove}
@@ -319,9 +363,11 @@ function CandidateModal({
                   hover:bg-green-500/25 hover:border-green-500/40
                   disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {isPending && activeAction === 'approve'
-                  ? <div className="w-4 h-4 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
-                  : <CheckCircle2 className="w-4 h-4" />}
+                {isPending && activeAction === "approve" ? (
+                  <div className="w-4 h-4 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
                 Approve
               </button>
               <button
@@ -342,11 +388,11 @@ function CandidateModal({
             <RejectReasonModal
               onConfirm={handleReject}
               onCancel={() => setShowRejectModal(false)}
-              isPending={isPending && activeAction === 'reject'}
+              isPending={isPending && activeAction === "reject"}
             />
           )}
 
-          {candidate.status === 'approved' && candidate.wa_sent_at && (
+          {candidate.status === "approved" && candidate.wa_sent_at && (
             <div className="flex gap-3">
               <button
                 onClick={handleTrialOffer}
@@ -356,15 +402,17 @@ function CandidateModal({
                   hover:bg-purple-500/25 hover:border-purple-500/40
                   disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {isPending && activeAction === 'trial_offer'
-                  ? <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
-                  : <Star className="w-4 h-4" />}
+                {isPending && activeAction === "trial_offer" ? (
+                  <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+                ) : (
+                  <Star className="w-4 h-4" />
+                )}
                 Mark as Trial Offered
               </button>
             </div>
           )}
 
-          {candidate.status === 'trial_offered' && (
+          {candidate.status === "trial_offered" && (
             <div className="flex gap-3">
               <button
                 onClick={handleTrialSuccess}
@@ -374,9 +422,11 @@ function CandidateModal({
                   hover:bg-emerald-500/25 hover:border-emerald-500/40
                   disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {isPending && activeAction === 'trial_success'
-                  ? <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
-                  : <ThumbsUp className="w-4 h-4" />}
+                {isPending && activeAction === "trial_success" ? (
+                  <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+                ) : (
+                  <ThumbsUp className="w-4 h-4" />
+                )}
                 Trial Successful
               </button>
               <button
@@ -387,20 +437,26 @@ function CandidateModal({
                   hover:bg-red-500/25 hover:border-red-500/40
                   disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {isPending && activeAction === 'trial_fail'
-                  ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
-                  : <ThumbsDown className="w-4 h-4" />}
+                {isPending && activeAction === "trial_fail" ? (
+                  <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                ) : (
+                  <ThumbsDown className="w-4 h-4" />
+                )}
                 Trial Failed
               </button>
             </div>
           )}
 
-          {candidate.status === 'on-boarded' && (
+          {candidate.status === "on-boarded" && (
             <div className="flex items-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
               <Award className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm font-semibold text-emerald-400">Onboarded</span>
+              <span className="text-sm font-semibold text-emerald-400">
+                Onboarded
+              </span>
               {candidate.onboarded_at && (
-                <span className="text-xs text-emerald-600 ml-1">since {formatDate(candidate.onboarded_at)}</span>
+                <span className="text-xs text-emerald-600 ml-1">
+                  since {formatDate(candidate.onboarded_at)}
+                </span>
               )}
             </div>
           )}
@@ -413,20 +469,52 @@ function CandidateModal({
 
           {/* Personal Info */}
           <Section title="Personal Information">
-            <InfoRow label="Email" value={candidate.email} />
-            <InfoRow label="Phone" value={candidate.phone} />
-            <InfoRow label="Instagram" value={candidate.instagram} />
-            <InfoRow label="Gender" value={candidate.gender} />
+            <InfoRow
+              label="Email"
+              value={candidate.email}
+            />
+            <InfoRow
+              label="Phone"
+              value={candidate.phone}
+            />
+            <InfoRow
+              label="Instagram"
+              value={candidate.instagram}
+            />
+            <InfoRow
+              label="Gender"
+              value={candidate.gender}
+            />
           </Section>
 
           {/* Location */}
           <Section title="Location & Availability">
-            <InfoRow label="Primary Location" value={candidate.primary_location} />
-            <InfoRow label="Second Choice" value={candidate.second_location} />
-            <InfoRow label="Manual Location" value={candidate.manual_location} />
-            <InfoRow label="Is Student" value={candidate.is_student ? 'Yes' : 'No'} />
-            {candidate.is_student && <InfoRow label="Home City" value={candidate.home_city} />}
-            <InfoRow label="Drives" value={candidate.does_drive ? 'Yes' : 'No'} />
+            <InfoRow
+              label="Primary Location"
+              value={candidate.primary_location}
+            />
+            <InfoRow
+              label="Second Choice"
+              value={candidate.second_location}
+            />
+            <InfoRow
+              label="Manual Location"
+              value={candidate.manual_location}
+            />
+            <InfoRow
+              label="Is Student"
+              value={candidate.is_student ? "Yes" : "No"}
+            />
+            {candidate.is_student && (
+              <InfoRow
+                label="Home City"
+                value={candidate.home_city}
+              />
+            )}
+            <InfoRow
+              label="Drives"
+              value={candidate.does_drive ? "Yes" : "No"}
+            />
           </Section>
 
           {/* Photos */}
@@ -445,7 +533,11 @@ function CandidateModal({
                     className="aspect-square rounded-xl overflow-hidden bg-[#1a1a1a] block hover:opacity-90 transition-opacity"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                    <img
+                      src={url}
+                      alt={`Photo ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
                   </a>
                 ))}
               </div>
@@ -461,23 +553,39 @@ function CandidateModal({
               <InfoRow
                 label="Passport Check"
                 value={
-                  candidate.passport_valid === null
-                    ? <span className="text-gray-500">Not checked</span>
-                    : candidate.passport_valid
-                    ? <span className="flex items-center gap-1 text-green-400"><ShieldCheck className="w-3.5 h-3.5" /> Valid</span>
-                    : <span className="flex items-center gap-1 text-red-400"><ShieldAlert className="w-3.5 h-3.5" /> Invalid</span>
+                  candidate.passport_valid === null ? (
+                    <span className="text-gray-500">Not checked</span>
+                  ) : candidate.passport_valid ? (
+                    <span className="flex items-center gap-1 text-green-400">
+                      <ShieldCheck className="w-3.5 h-3.5" /> Valid
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-red-400">
+                      <ShieldAlert className="w-3.5 h-3.5" /> Invalid
+                    </span>
+                  )
                 }
               />
               <InfoRow
                 label="UK Passport"
                 value={
-                  candidate.is_uk_passport === null
-                    ? <span className="text-gray-500">Unknown</span>
-                    : candidate.is_uk_passport ? 'Yes' : 'No'
+                  candidate.is_uk_passport === null ? (
+                    <span className="text-gray-500">Unknown</span>
+                  ) : candidate.is_uk_passport ? (
+                    "Yes"
+                  ) : (
+                    "No"
+                  )
                 }
               />
-              <InfoRow label="Non-UK Passport" value={candidate.has_non_uk_passport ? 'Yes' : 'No'} />
-              <InfoRow label="Share Code" value={candidate.share_code} />
+              <InfoRow
+                label="Non-UK Passport"
+                value={candidate.has_non_uk_passport ? "Yes" : "No"}
+              />
+              <InfoRow
+                label="Share Code"
+                value={candidate.share_code}
+              />
             </div>
             {candidate.passport_url && (
               <a
@@ -492,7 +600,9 @@ function CandidateModal({
                   alt="Passport"
                   className="w-full max-h-48 object-contain p-2"
                 />
-                <p className="text-center text-xs text-gray-500 pb-2">Click to open full size</p>
+                <p className="text-center text-xs text-gray-500 pb-2">
+                  Click to open full size
+                </p>
               </a>
             )}
           </div>
@@ -501,14 +611,28 @@ function CandidateModal({
           <Section title="Experience & Motivation">
             <InfoRow
               label="Prior Shot-Seller Experience"
-              value={candidate.has_prior_experience ? 'Yes' : 'No'}
+              value={candidate.has_prior_experience ? "Yes" : "No"}
             />
-            <InfoRow label="Previous Company" value={candidate.previous_company} />
+            <InfoRow
+              label="Previous Company"
+              value={candidate.previous_company}
+            />
             <InfoRow
               label="Years Experience"
-              value={candidate.years_experience !== null ? String(candidate.years_experience) : undefined}
+              value={
+                candidate.years_experience !== null
+                  ? String(candidate.years_experience)
+                  : undefined
+              }
             />
-            <InfoRow label="Available From" value={candidate.available_from ? formatDate(candidate.available_from) : undefined} />
+            <InfoRow
+              label="Available From"
+              value={
+                candidate.available_from
+                  ? formatDate(candidate.available_from)
+                  : undefined
+              }
+            />
           </Section>
 
           {/* Long-form answers */}
@@ -550,15 +674,26 @@ function CandidateModal({
 
           {/* Declarations */}
           <Section title="Declarations">
-            <InfoRow label="Accepts self-employed terms" value={candidate.self_employed ? 'Yes ✓' : 'No'} />
-            <InfoRow label="Accepts weekend/night work" value={candidate.weekend_work ? 'Yes ✓' : 'No'} />
-            <InfoRow label="How they heard about us" value={candidate.heard_about} />
+            <InfoRow
+              label="Accepts self-employed terms"
+              value={candidate.self_employed ? "Yes ✓" : "No"}
+            />
+            <InfoRow
+              label="Accepts weekend/night work"
+              value={candidate.weekend_work ? "Yes ✓" : "No"}
+            />
+            <InfoRow
+              label="How they heard about us"
+              value={candidate.heard_about}
+            />
             <InfoRow
               label="WhatsApp Invite Sent"
               value={
-                candidate.wa_sent_at
-                  ? formatDate(candidate.wa_sent_at)
-                  : <span className="text-gray-600">Not sent</span>
+                candidate.wa_sent_at ? (
+                  formatDate(candidate.wa_sent_at)
+                ) : (
+                  <span className="text-gray-600">Not sent</span>
+                )
               }
             />
           </Section>
@@ -578,28 +713,40 @@ function RowActions({
   onStatusChange: (id: string, patch: Partial<Candidate>) => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [activeAction, setActiveAction] = useState<'approve' | 'reject' | null>(null);
+  const [activeAction, setActiveAction] = useState<"approve" | "reject" | null>(
+    null,
+  );
   const [showRejectModal, setShowRejectModal] = useState(false);
 
-  if (candidate.status !== 'pending') return null;
+  if (candidate.status !== "pending") return null;
 
   function handleApprove(e: React.MouseEvent) {
     e.stopPropagation();
-    setActiveAction('approve');
+    setActiveAction("approve");
     startTransition(async () => {
       const result = await approveCandidate(candidate);
-      if (!result.error) onStatusChange(candidate.id, { status: 'approved' });
+      if (!result.error) onStatusChange(candidate.id, { status: "approved" });
       setActiveAction(null);
     });
   }
 
   function handleRejectConfirm(reason: string) {
-    setActiveAction('reject');
+    setActiveAction("reject");
     startTransition(async () => {
-      const result = await rejectCandidate({ id: candidate.id, full_name: candidate.full_name, phone: candidate.phone }, reason);
+      const result = await rejectCandidate(
+        {
+          id: candidate.id,
+          full_name: candidate.full_name,
+          phone: candidate.phone,
+        },
+        reason,
+      );
       if (!result.error) {
         setShowRejectModal(false);
-        onStatusChange(candidate.id, { status: 'rejected', rejection_reason: reason });
+        onStatusChange(candidate.id, {
+          status: "rejected",
+          rejection_reason: reason,
+        });
       }
       setActiveAction(null);
     });
@@ -607,37 +754,42 @@ function RowActions({
 
   return (
     <>
-    {showRejectModal && (
-      <RejectReasonModal
-        onConfirm={handleRejectConfirm}
-        onCancel={() => setShowRejectModal(false)}
-        isPending={isPending && activeAction === 'reject'}
-      />
-    )}
-    <div className="flex items-center gap-1.5">
-      <button
-        onClick={handleApprove}
-        disabled={isPending}
-        title="Approve"
-        className="p-1.5 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 disabled:opacity-50 transition-colors"
-      >
-        {isPending && activeAction === 'approve'
-          ? <div className="w-3.5 h-3.5 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
-          : <CheckCircle2 className="w-3.5 h-3.5" />
-        }
-      </button>
-      <button
-        onClick={(e) => { e.stopPropagation(); setShowRejectModal(true); }}
-        disabled={isPending}
-        title="Reject"
-        className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
-      >
-        {isPending && activeAction === 'reject'
-          ? <div className="w-3.5 h-3.5 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
-          : <XCircle className="w-3.5 h-3.5" />
-        }
-      </button>
-    </div>
+      {showRejectModal && (
+        <RejectReasonModal
+          onConfirm={handleRejectConfirm}
+          onCancel={() => setShowRejectModal(false)}
+          isPending={isPending && activeAction === "reject"}
+        />
+      )}
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={handleApprove}
+          disabled={isPending}
+          title="Approve"
+          className="p-1.5 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 disabled:opacity-50 transition-colors"
+        >
+          {isPending && activeAction === "approve" ? (
+            <div className="w-3.5 h-3.5 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
+          ) : (
+            <CheckCircle2 className="w-3.5 h-3.5" />
+          )}
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowRejectModal(true);
+          }}
+          disabled={isPending}
+          title="Reject"
+          className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
+        >
+          {isPending && activeAction === "reject" ? (
+            <div className="w-3.5 h-3.5 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+          ) : (
+            <XCircle className="w-3.5 h-3.5" />
+          )}
+        </button>
+      </div>
     </>
   );
 }
@@ -649,14 +801,15 @@ function InlineStatusDropdown({
   onSelect,
 }: {
   candidate: Candidate;
-  onSelect: (newStatus: Candidate['status']) => void;
+  onSelect: (newStatus: Candidate["status"]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [dropRect, setDropRect] = useState<DOMRect | null>(null);
 
   const transitions = STATUS_TRANSITIONS[candidate.status];
-  if (transitions.length === 0) return <StatusBadge status={candidate.status} />;
+  if (transitions.length === 0)
+    return <StatusBadge status={candidate.status} />;
 
   function handleOpen(e: React.MouseEvent) {
     e.stopPropagation();
@@ -666,7 +819,7 @@ function InlineStatusDropdown({
     setOpen((v) => !v);
   }
 
-  function handleSelect(e: React.MouseEvent, s: Candidate['status']) {
+  function handleSelect(e: React.MouseEvent, s: Candidate["status"]) {
     e.stopPropagation();
     setOpen(false);
     onSelect(s);
@@ -684,74 +837,96 @@ function InlineStatusDropdown({
         <ChevronDown className="w-3 h-3 text-gray-600 group-hover:text-gray-400 transition-colors" />
       </button>
 
-      {open && dropRect && createPortal(
-        <>
-          {/* Invisible backdrop to close on outside click */}
-          <div
-            className="fixed inset-0 z-[9998]"
-            onClick={(e) => { e.stopPropagation(); setOpen(false); }}
-          />
-          {/* Dropdown anchored above the button via fixed positioning */}
-          <div
-            style={{
-              position: 'fixed',
-              top: dropRect.top - 4,
-              left: dropRect.left,
-              zIndex: 9999,
-              transform: 'translateY(-100%)',
-            }}
-            className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl shadow-2xl py-1 min-w-[160px]"
-          >
-            {transitions.map((s) => (
-              <button
-                key={s}
-                onClick={(e) => handleSelect(e, s)}
-                className="w-full text-left px-3 py-2 hover:bg-[#252525] transition-colors flex items-center gap-2"
-              >
-                <StatusBadge status={s} />
-              </button>
-            ))}
-          </div>
-        </>,
-        document.body
-      )}
+      {open &&
+        dropRect &&
+        createPortal(
+          <>
+            {/* Invisible backdrop to close on outside click */}
+            <div
+              className="fixed inset-0 z-[9998]"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+              }}
+            />
+            {/* Dropdown anchored above the button via fixed positioning */}
+            <div
+              style={{
+                position: "fixed",
+                top: dropRect.top - 4,
+                left: dropRect.left,
+                zIndex: 9999,
+                transform: "translateY(-100%)",
+              }}
+              className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl shadow-2xl py-1 min-w-[160px]"
+            >
+              {transitions.map((s) => (
+                <button
+                  key={s}
+                  onClick={(e) => handleSelect(e, s)}
+                  className="w-full text-left px-3 py-2 hover:bg-[#252525] transition-colors flex items-center gap-2"
+                >
+                  <StatusBadge status={s} />
+                </button>
+              ))}
+            </div>
+          </>,
+          document.body,
+        )}
     </>
   );
 }
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
-type SortKey = 'created_at' | 'full_name' | 'status';
+type SortKey = "created_at" | "full_name" | "status";
 
-export function CandidatesDashboard({ initialCandidates }: { initialCandidates: Candidate[] }) {
+export function CandidatesDashboard({
+  initialCandidates,
+}: {
+  initialCandidates: Candidate[];
+}) {
   const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
   const [selected, setSelected] = useState<Candidate | null>(null);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | Candidate['status'] | 'invite_sent' | 'trial_offered_filter' | 'onboarded_filter'>('all');
-  const [sortKey, setSortKey] = useState<SortKey>('created_at');
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    | "all"
+    | Candidate["status"]
+    | "invite_sent"
+    | "trial_offered_filter"
+    | "onboarded_filter"
+  >("all");
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortAsc, setSortAsc] = useState(false);
   const [pendingReject, setPendingReject] = useState<Candidate | null>(null);
   const [rejectPending, setRejectPending] = useState(false);
 
   function handleStatusChange(id: string, patch: Partial<Candidate>) {
     setCandidates((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...patch } : c))
+      prev.map((c) => (c.id === id ? { ...c, ...patch } : c)),
     );
     if (selected?.id === id) {
-      setSelected((prev) => prev ? { ...prev, ...patch } : null);
+      setSelected((prev) => (prev ? { ...prev, ...patch } : null));
     }
   }
 
-  async function handleStatusDirect(candidate: Candidate, newStatus: Candidate['status']) {
-    if (newStatus === 'rejected') {
+  async function handleStatusDirect(
+    candidate: Candidate,
+    newStatus: Candidate["status"],
+  ) {
+    if (newStatus === "rejected") {
       setPendingReject(candidate);
       return;
     }
     const confirmed = window.confirm(
-      `Change "${candidate.full_name}" status from "${STATUS_LABEL[candidate.status]}" to "${STATUS_LABEL[newStatus]}"?\n\nSave changes?`
+      `Change "${candidate.full_name}" status from "${STATUS_LABEL[candidate.status]}" to "${STATUS_LABEL[newStatus]}"?\n\nSave changes?`,
     );
     if (!confirmed) return;
-    const result = await changeStatus(candidate.id, candidate.status, newStatus);
+    const result = await changeStatus(
+      candidate.id,
+      candidate.status,
+      newStatus,
+    );
     if (result.error) {
       window.alert(`Failed to update: ${result.error}`);
       return;
@@ -763,7 +938,11 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
     if (!pendingReject) return;
     setRejectPending(true);
     const result = await rejectCandidate(
-      { id: pendingReject.id, full_name: pendingReject.full_name, phone: pendingReject.phone },
+      {
+        id: pendingReject.id,
+        full_name: pendingReject.full_name,
+        phone: pendingReject.phone,
+      },
       reason,
     );
     setRejectPending(false);
@@ -771,25 +950,32 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
       window.alert(`Failed to reject: ${result.error}`);
       return;
     }
-    handleStatusChange(pendingReject.id, { status: 'rejected', rejection_reason: reason });
+    handleStatusChange(pendingReject.id, {
+      status: "rejected",
+      rejection_reason: reason,
+    });
     setPendingReject(null);
   }
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortAsc((v) => !v);
-    else { setSortKey(key); setSortAsc(true); }
+    else {
+      setSortKey(key);
+      setSortAsc(true);
+    }
   }
 
   const filtered = candidates
     .filter((c) => {
       const q = search.toLowerCase();
-      if (statusFilter === 'invite_sent') {
-        if (!c.wa_sent_at || c.status === 'rejected') return false;
-      } else if (statusFilter === 'trial_offered_filter') {
-        if (c.status !== 'trial_offered') return false;
-      } else if (statusFilter === 'onboarded_filter') {
-        if (c.status !== 'on-boarded') return false;
-      } else if (statusFilter !== 'all' && c.status !== statusFilter) return false;
+      if (statusFilter === "invite_sent") {
+        if (!c.wa_sent_at || c.status === "rejected") return false;
+      } else if (statusFilter === "trial_offered_filter") {
+        if (c.status !== "trial_offered") return false;
+      } else if (statusFilter === "onboarded_filter") {
+        if (c.status !== "on-boarded") return false;
+      } else if (statusFilter !== "all" && c.status !== statusFilter)
+        return false;
       if (!q) return true;
       return (
         c.full_name.toLowerCase().includes(q) ||
@@ -799,29 +985,40 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
       );
     })
     .sort((a, b) => {
-      let av: string = '';
-      let bv: string = '';
-      if (sortKey === 'created_at') { av = a.created_at; bv = b.created_at; }
-      if (sortKey === 'full_name') { av = a.full_name; bv = b.full_name; }
-      if (sortKey === 'status') { av = a.status; bv = b.status; }
+      let av: string = "";
+      let bv: string = "";
+      if (sortKey === "created_at") {
+        av = a.created_at;
+        bv = b.created_at;
+      }
+      if (sortKey === "full_name") {
+        av = a.full_name;
+        bv = b.full_name;
+      }
+      if (sortKey === "status") {
+        av = a.status;
+        bv = b.status;
+      }
       return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
     });
 
   const counts = {
     total: candidates.length,
-    pending: candidates.filter((c) => c.status === 'pending').length,
+    pending: candidates.filter((c) => c.status === "pending").length,
     inviteSent: candidates.filter((c) => c.wa_sent_at !== null).length,
-    approved: candidates.filter((c) => c.status === 'approved').length,
-    trialOffered: candidates.filter((c) => c.status === 'trial_offered').length,
-    onboarded: candidates.filter((c) => c.status === 'on-boarded').length,
-    rejected: candidates.filter((c) => c.status === 'rejected').length,
+    approved: candidates.filter((c) => c.status === "approved").length,
+    trialOffered: candidates.filter((c) => c.status === "trial_offered").length,
+    onboarded: candidates.filter((c) => c.status === "on-boarded").length,
+    rejected: candidates.filter((c) => c.status === "rejected").length,
   };
 
   function SortIcon({ k }: { k: SortKey }) {
     if (sortKey !== k) return <ChevronDown className="w-3 h-3 text-gray-600" />;
-    return sortAsc
-      ? <ChevronUp className="w-3 h-3 text-[#FDB8D7]" />
-      : <ChevronDown className="w-3 h-3 text-[#FDB8D7]" />;
+    return sortAsc ? (
+      <ChevronUp className="w-3 h-3 text-[#FDB8D7]" />
+    ) : (
+      <ChevronDown className="w-3 h-3 text-[#FDB8D7]" />
+    );
   }
 
   return (
@@ -838,12 +1035,28 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ boxShadow: '0 0 0 1px #FDB8D730' }}>
-                <Image src="/logo1.jpeg" alt="Effervescent Agency" width={40} height={40} className="w-full h-full object-cover" />
+              <div
+                className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0"
+                style={{ boxShadow: "0 0 0 1px #FDB8D730" }}
+              >
+                <Image
+                  src="/logo1.jpeg"
+                  alt="Effervescent Agency"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
-                <p className="text-sm font-bold tracking-tight leading-none" style={{ color: '#FDB8D7' }}>Effervescent Agency</p>
-                <p className="text-xs text-gray-600 mt-0.5">Candidates Dashboard</p>
+                <p
+                  className="text-sm font-bold tracking-tight leading-none"
+                  style={{ color: "#FDB8D7" }}
+                >
+                  Effervescent Agency
+                </p>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Candidates Dashboard
+                </p>
               </div>
             </div>
           </div>
@@ -857,29 +1070,80 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           {/* Total card uses brand color */}
-          <div className="rounded-2xl border p-4 flex items-center gap-3" style={{ borderColor: '#FDB8D720', backgroundColor: '#FDB8D708' }}>
-            <Briefcase className="w-5 h-5 flex-shrink-0" style={{ color: '#FDB8D7' }} />
+          <div
+            className="rounded-2xl border p-4 flex items-center gap-3"
+            style={{ borderColor: "#FDB8D720", backgroundColor: "#FDB8D708" }}
+          >
+            <Briefcase
+              className="w-5 h-5 flex-shrink-0"
+              style={{ color: "#FDB8D7" }}
+            />
             <div>
-              <p className="text-2xl font-bold leading-none" style={{ color: '#FDB8D7' }}>{counts.total}</p>
+              <p
+                className="text-2xl font-bold leading-none"
+                style={{ color: "#FDB8D7" }}
+              >
+                {counts.total}
+              </p>
               <p className="text-xs text-gray-500 mt-0.5">Total</p>
             </div>
           </div>
           {[
-            { label: 'Pending',       value: counts.pending,      icon: Clock,       color: 'text-yellow-400',  bg: 'bg-yellow-500/10 border-yellow-500/20' },
-            { label: 'Invite Sent',   value: counts.inviteSent,   icon: Mail,        color: 'text-blue-400',    bg: 'bg-blue-500/10 border-blue-500/20'    },
-            { label: 'Approved',      value: counts.approved,     icon: CheckCircle2,color: 'text-green-400',   bg: 'bg-green-500/10 border-green-500/20'  },
-            { label: 'Trial Offered', value: counts.trialOffered, icon: Star,        color: 'text-purple-400',  bg: 'bg-purple-500/10 border-purple-500/20' },
-            { label: 'Onboarded',     value: counts.onboarded,    icon: Award,       color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-            { label: 'Rejected',      value: counts.rejected,     icon: XCircle,     color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/20'      },
+            {
+              label: "Pending",
+              value: counts.pending,
+              icon: Clock,
+              color: "text-yellow-400",
+              bg: "bg-yellow-500/10 border-yellow-500/20",
+            },
+            {
+              label: "Invite Sent",
+              value: counts.inviteSent,
+              icon: Mail,
+              color: "text-blue-400",
+              bg: "bg-blue-500/10 border-blue-500/20",
+            },
+            {
+              label: "Approved",
+              value: counts.approved,
+              icon: CheckCircle2,
+              color: "text-green-400",
+              bg: "bg-green-500/10 border-green-500/20",
+            },
+            {
+              label: "Trial Offered",
+              value: counts.trialOffered,
+              icon: Star,
+              color: "text-purple-400",
+              bg: "bg-purple-500/10 border-purple-500/20",
+            },
+            {
+              label: "Onboarded",
+              value: counts.onboarded,
+              icon: Award,
+              color: "text-emerald-400",
+              bg: "bg-emerald-500/10 border-emerald-500/20",
+            },
+            {
+              label: "Rejected",
+              value: counts.rejected,
+              icon: XCircle,
+              color: "text-red-400",
+              bg: "bg-red-500/10 border-red-500/20",
+            },
           ].map(({ label, value, icon: Icon, color, bg }) => (
-            <div key={label} className={`rounded-2xl border p-4 flex items-center gap-3 ${bg}`}>
+            <div
+              key={label}
+              className={`rounded-2xl border p-4 flex items-center gap-3 ${bg}`}
+            >
               <Icon className={`w-5 h-5 flex-shrink-0 ${color}`} />
               <div>
-                <p className={`text-2xl font-bold leading-none ${color}`}>{value}</p>
+                <p className={`text-2xl font-bold leading-none ${color}`}>
+                  {value}
+                </p>
                 <p className="text-xs text-gray-500 mt-0.5">{label}</p>
               </div>
             </div>
@@ -895,28 +1159,44 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
             placeholder="Search by name, email, phone, location…"
             className="flex-1 px-4 py-2.5 bg-[#111111] border border-[#1f1f1f] rounded-xl text-sm text-white
               placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:border-transparent"
-            style={{ '--tw-ring-color': '#FDB8D7' } as React.CSSProperties}
-            onFocus={(e) => { e.currentTarget.style.boxShadow = '0 0 0 2px #FDB8D760'; e.currentTarget.style.borderColor = '#FDB8D7'; }}
-            onBlur={(e) => { e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = ''; }}
+            style={{ "--tw-ring-color": "#FDB8D7" } as React.CSSProperties}
+            onFocus={(e) => {
+              e.currentTarget.style.boxShadow = "0 0 0 2px #FDB8D760";
+              e.currentTarget.style.borderColor = "#FDB8D7";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.boxShadow = "";
+              e.currentTarget.style.borderColor = "";
+            }}
           />
           <div className="flex flex-wrap gap-2">
-            {([
-              { value: 'all',                  label: 'All' },
-              { value: 'pending',              label: 'Pending' },
-              { value: 'invite_sent',          label: 'Invite Sent' },
-              { value: 'approved',             label: 'Approved' },
-              { value: 'trial_offered_filter', label: 'Trial Offered' },
-              { value: 'onboarded_filter',     label: 'Onboarded' },
-              { value: 'rejected',             label: 'Rejected' },
-            ] as const).map(({ value, label }) => (
+            {(
+              [
+                { value: "all", label: "All" },
+                { value: "pending", label: "Pending" },
+                { value: "invite_sent", label: "Invite Sent" },
+                { value: "approved", label: "Approved" },
+                { value: "trial_offered_filter", label: "Trial Offered" },
+                { value: "onboarded_filter", label: "Onboarded" },
+                { value: "rejected", label: "Rejected" },
+              ] as const
+            ).map(({ value, label }) => (
               <button
                 key={value}
                 onClick={() => setStatusFilter(value)}
-                style={statusFilter === value ? { backgroundColor: '#FDB8D7', borderColor: '#FDB8D7', color: '#1a0a10' } : {}}
+                style={
+                  statusFilter === value
+                    ? {
+                        backgroundColor: "#FDB8D7",
+                        borderColor: "#FDB8D7",
+                        color: "#1a0a10",
+                      }
+                    : {}
+                }
                 className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
                   statusFilter === value
-                    ? ''
-                    : 'bg-[#111111] text-gray-400 border-[#1f1f1f] hover:border-[#FDB8D7]/50 hover:text-[#FDB8D7]'
+                    ? ""
+                    : "bg-[#111111] text-gray-400 border-[#1f1f1f] hover:border-[#FDB8D7]/50 hover:text-[#FDB8D7]"
                 }`}
               >
                 {label}
@@ -940,19 +1220,21 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                   <thead>
                     <tr className="border-b border-[#1a1a1a]">
                       {[
-                        { label: 'Name', key: 'full_name' as SortKey },
-                        { label: 'Contact', key: null },
-                        { label: 'Location', key: null },
-                        { label: 'Gender', key: null },
-                        { label: 'Status', key: 'status' as SortKey },
-                        { label: 'Applied', key: 'created_at' as SortKey },
-                        { label: '', key: null },
+                        { label: "Name", key: "full_name" as SortKey },
+                        { label: "Contact", key: null },
+                        { label: "Location", key: null },
+                        { label: "Gender", key: null },
+                        { label: "Status", key: "status" as SortKey },
+                        { label: "Applied", key: "created_at" as SortKey },
+                        { label: "", key: null },
                       ].map(({ label, key }) => (
                         <th
                           key={label}
                           onClick={key ? () => toggleSort(key) : undefined}
                           className={`px-4 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap ${
-                            key ? 'cursor-pointer hover:text-gray-300 select-none' : ''
+                            key
+                              ? "cursor-pointer hover:text-gray-300 select-none"
+                              : ""
                           }`}
                         >
                           <span className="flex items-center gap-1">
@@ -975,7 +1257,9 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                             {c.full_name}
                           </p>
                           {c.instagram && (
-                            <p className="text-xs text-gray-600">{c.instagram}</p>
+                            <p className="text-xs text-gray-600">
+                              {c.instagram}
+                            </p>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -994,18 +1278,34 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                             {c.primary_location}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5 text-gray-600">
-                            {c.does_drive && <span className="flex items-center gap-0.5 text-xs"><Car className="w-3 h-3" /> Drives</span>}
-                            {c.is_student && <span className="flex items-center gap-0.5 text-xs"><GraduationCap className="w-3 h-3" /> Student</span>}
+                            {c.does_drive && (
+                              <span className="flex items-center gap-0.5 text-xs">
+                                <Car className="w-3 h-3" /> Drives
+                              </span>
+                            )}
+                            {c.is_student && (
+                              <span className="flex items-center gap-0.5 text-xs">
+                                <GraduationCap className="w-3 h-3" /> Student
+                              </span>
+                            )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap">{c.gender ?? '—'}</td>
-                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
+                          {c.gender ?? "—"}
+                        </td>
+                        <td
+                          className="px-4 py-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <InlineStatusDropdown
                             candidate={c}
                             onSelect={(s) => handleStatusDirect(c, s)}
                           />
-                          {c.status === 'rejected' && c.rejection_reason && (
-                            <p className="text-[10px] text-red-400/70 italic mt-1 max-w-[160px] truncate" title={c.rejection_reason}>
+                          {c.status === "rejected" && c.rejection_reason && (
+                            <p
+                              className="text-[10px] text-red-400/70 italic mt-1 max-w-[160px] truncate"
+                              title={c.rejection_reason}
+                            >
                               {c.rejection_reason}
                             </p>
                           )}
@@ -1015,10 +1315,19 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                           {formatDate(c.created_at)}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            <RowActions candidate={c} onStatusChange={handleStatusChange} />
+                          <div
+                            className="flex items-center gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <RowActions
+                              candidate={c}
+                              onStatusChange={handleStatusChange}
+                            />
                             <button
-                              onClick={(e) => { e.stopPropagation(); setSelected(c); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelected(c);
+                              }}
                               className="p-1.5 rounded-lg bg-[#1a1a1a] text-gray-500 hover:text-[#FDB8D7] hover:bg-[#FDB8D7]/10 transition-colors"
                               title="View"
                             >
@@ -1042,7 +1351,9 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
-                        <p className="font-semibold text-white">{c.full_name}</p>
+                        <p className="font-semibold text-white">
+                          {c.full_name}
+                        </p>
                         <p className="text-xs text-gray-500">{c.email}</p>
                       </div>
                       <div onClick={(e) => e.stopPropagation()}>
@@ -1053,16 +1364,30 @@ export function CandidatesDashboard({ initialCandidates }: { initialCandidates: 
                       </div>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-500">
-                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{c.primary_location}</span>
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {c.primary_location}
+                      </span>
                       {c.gender && <span>{c.gender}</span>}
                     </div>
-                    {c.status === 'rejected' && c.rejection_reason && (
-                      <p className="text-[10px] text-red-400/70 italic mt-1">{c.rejection_reason}</p>
+                    {c.status === "rejected" && c.rejection_reason && (
+                      <p className="text-[10px] text-red-400/70 italic mt-1">
+                        {c.rejection_reason}
+                      </p>
                     )}
-                    <div className="flex items-center gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
-                      <RowActions candidate={c} onStatusChange={handleStatusChange} />
+                    <div
+                      className="flex items-center gap-2 mt-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <RowActions
+                        candidate={c}
+                        onStatusChange={handleStatusChange}
+                      />
                       <button
-                        onClick={(e) => { e.stopPropagation(); setSelected(c); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected(c);
+                        }}
                         className="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-[#FDB8D7] transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" /> View
