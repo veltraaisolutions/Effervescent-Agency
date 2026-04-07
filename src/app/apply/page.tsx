@@ -199,11 +199,11 @@ function isAtLeast18(dob: string): boolean {
 
 // Normalise a phone number to E.164 format (+[countrycode][number], no spaces)
 function normalizePhone(raw: string): string {
-  let v = raw.trim().replace(/[\s\-().]/g, '');
+  let v = raw.trim().replace(/[\s\-().]/g, "");
   // UK local: 07xxxxxxxxx → +447xxxxxxxxx
-  if (/^07\d{9}$/.test(v)) return '+44' + v.slice(1);
+  if (/^07\d{9}$/.test(v)) return "+44" + v.slice(1);
   // Already international without +
-  if (/^\d{10,15}$/.test(v)) return '+' + v;
+  if (/^\d{10,15}$/.test(v)) return "+" + v;
   return v;
 }
 
@@ -295,7 +295,10 @@ function TextInput({
       placeholder={placeholder}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
-      onBlur={(e) => { onBlurBrand(e); onBlur?.(); }}
+      onBlur={(e) => {
+        onBlurBrand(e);
+        onBlur?.();
+      }}
       style={{ colorScheme: "dark" }}
       className="w-full px-3 py-2.5 border border-[#2a2a2a] rounded-xl text-sm
         bg-[#1a1a1a] text-white placeholder:text-gray-600
@@ -530,8 +533,10 @@ export default function ApplyPage() {
       if (!form.email.trim()) e.email = "Email address is required";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
         e.email = "Please enter a valid email address";
-      if (!form.phone.trim()) e.phone = 'Phone number is required';
-      else if (!isValidPhone(form.phone)) e.phone = 'Enter a valid number with country code and no spaces — e.g. +447700000000';
+      if (!form.phone.trim()) e.phone = "Phone number is required";
+      else if (!isValidPhone(form.phone))
+        e.phone =
+          "Enter a valid number with country code and no spaces — e.g. +447700000000";
       if (!form.instagram.trim())
         e.instagram = "Instagram username is required";
     }
@@ -714,12 +719,27 @@ export default function ApplyPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
         <div className="bg-[#111111] border border-[#1f1f1f] rounded-3xl shadow-2xl p-10 max-w-md w-full text-center">
-          <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg" style={{ boxShadow: `0 0 0 2px ${B}40` }}>
-            <Image src="/logo1.jpeg" alt="Effervescent Agency" width={96} height={96} className="w-full h-full object-cover" />
+          <div
+            className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg"
+            style={{ boxShadow: `0 0 0 2px ${B}40` }}
+          >
+            <Image
+              src="/logo1.jpeg"
+              alt="Effervescent Agency"
+              width={96}
+              height={96}
+              className="w-full h-full object-cover"
+            />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3">Application Submitted!</h2>
-          <p className="text-gray-300 text-base leading-relaxed">Thank you! We&apos;ll be in touch soon 💕</p>
-          <p className="text-gray-500 text-sm mt-3">Keep an eye on your email and Instagram DMs.</p>
+          <h2 className="text-2xl font-bold text-white mb-3">
+            Application Submitted!
+          </h2>
+          <p className="text-gray-300 text-base leading-relaxed">
+            Thank you! We&apos;ll be in touch soon 💕
+          </p>
+          <p className="text-gray-500 text-sm mt-3">
+            Keep an eye on your email and Instagram DMs.
+          </p>
         </div>
       </div>
     );
@@ -732,8 +752,17 @@ export default function ApplyPage() {
       {/* Header */}
       <header className="bg-[#0d0d0d]/95 backdrop-blur-sm border-b border-[#1a1a1a] sticky top-0 z-20">
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="h-10 rounded-xl overflow-hidden" style={{ boxShadow: `0 0 0 1px ${B}30` }}>
-            <Image src="/logo2.jpeg" alt="Effervescent Agency" width={180} height={40} className="h-10 w-auto object-contain" />
+          <div
+            className="h-10 rounded-xl overflow-hidden"
+            style={{ boxShadow: `0 0 0 1px ${B}30` }}
+          >
+            <Image
+              src="/logo2.jpeg"
+              alt="Effervescent Agency"
+              width={180}
+              height={40}
+              className="h-10 w-auto object-contain"
+            />
           </div>
           <span
             className="text-xs font-semibold px-3 py-1 rounded-full border"
@@ -881,7 +910,10 @@ export default function ApplyPage() {
                     }}
                     placeholder="+447700000000 — country code, no spaces"
                   />
-                  <p className="mt-1 text-[11px] text-gray-600">Include country code · no spaces or dashes · e.g. +447700000000</p>
+                  <p className="mt-1 text-[11px] text-gray-600">
+                    Include country code · no spaces or dashes · e.g.
+                    +447700000000
+                  </p>
                   <FieldError message={errors.phone} />
                 </div>
                 <div>
@@ -975,7 +1007,7 @@ export default function ApplyPage() {
                 <div>
                   <FieldLabel required>Photos of Yourself</FieldLabel>
                   <p className="text-xs text-gray-500 mb-2">
-                    Upload 2–5 photos. JPG, PNG, or WEBP only. Max 10MB each.
+                    Upload 2 photos. JPG, PNG, or WEBP only. Max 10MB each.
                   </p>
                   <div
                     onClick={() => photosRef.current?.click()}
