@@ -28,7 +28,13 @@ export interface Candidate {
   self_employed: boolean;
   weekend_work: boolean;
   heard_about: string | null;
-  status: "pending" | "approved" | "rejected" | "trial_offered" | "on-boarded";
+  status:
+    | "pending"
+    | "approved"
+    | "rejected"
+    | "trial_offered"
+    | "onboarding"
+    | "on-boarded";
   rejection_reason: string | null;
   passport_valid: boolean | null;
   is_uk_passport: boolean | null;

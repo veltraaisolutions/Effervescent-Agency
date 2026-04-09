@@ -50,6 +50,7 @@ const STATUS_LABEL: Record<Candidate["status"], string> = {
   approved: "Approved",
   rejected: "Rejected",
   trial_offered: "Trial Offered",
+  onboarding: "Onboarding",
   "on-boarded": "Onboarded",
 };
 
@@ -57,9 +58,10 @@ const STATUS_LABEL: Record<Candidate["status"], string> = {
 const STATUS_TRANSITIONS: Record<Candidate["status"], Candidate["status"][]> = {
   pending: ["approved", "rejected"],
   approved: ["trial_offered", "rejected"],
-  trial_offered: ["on-boarded", "rejected"],
-  "on-boarded": [], // terminal
-  rejected: ["pending"], // allow reconsideration
+  trial_offered: ["onboarding", "rejected"],
+  onboarding: ["on-boarded", "rejected"],
+  "on-boarded": [],
+  rejected: ["pending"],
 };
 
 function StatusBadge({ status }: { status: Candidate["status"] }) {
@@ -68,6 +70,7 @@ function StatusBadge({ status }: { status: Candidate["status"] }) {
     approved: "bg-green-500/15 text-green-400 border-green-500/25",
     rejected: "bg-red-500/15 text-red-400 border-red-500/25",
     trial_offered: "bg-purple-500/15 text-purple-400 border-purple-500/25",
+    onboarding: "bg-blue-500/15 text-blue-400 border-blue-500/25",
     "on-boarded": "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
   };
   return (
@@ -200,7 +203,13 @@ function CandidateModal({
   const [isPending, startTransition] = useTransition();
   const [actionError, setActionError] = useState("");
   const [activeAction, setActiveAction] = useState<
-    "approve" | "reject" | "trial_offer" | "trial_success" | "trial_fail" | null
+    | "approve"
+    | "reject"
+    | "trial_offer"
+    | "trial_success"
+    | "trial_fail"
+    | "complete_onboarding"
+    | null
   >(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
 
@@ -265,14 +274,34 @@ function CandidateModal({
     setActionError("");
     setActiveAction("trial_success");
     startTransition(async () => {
-      const now = new Date().toISOString();
       const result = await markTrialSuccessful(candidate.id);
       if (result.error) {
         setActionError(result.error);
       } else {
         onStatusChange(candidate.id, {
-          status: "on-boarded",
+          status: "onboarding",
           trial_success: true,
+        });
+      }
+      setActiveAction(null);
+    });
+  }
+
+  function handleCompleteOnboarding() {
+    setActionError("");
+    setActiveAction("complete_onboarding");
+    startTransition(async () => {
+      const now = new Date().toISOString();
+      const result = await changeStatus(
+        candidate.id,
+        "onboarding",
+        "on-boarded",
+      );
+      if (result.error) {
+        setActionError(result.error as string);
+      } else {
+        onStatusChange(candidate.id, {
+          status: "on-boarded",
           onboarded_at: now,
         });
       }
@@ -418,24 +447,24 @@ function CandidateModal({
                 onClick={handleTrialSuccess}
                 disabled={isPending}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold
-                  bg-emerald-500/15 text-emerald-400 border border-emerald-500/25
-                  hover:bg-emerald-500/25 hover:border-emerald-500/40
-                  disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        bg-blue-500/15 text-blue-400 border border-blue-500/25
+        hover:bg-blue-500/25 hover:border-blue-500/40
+        disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {isPending && activeAction === "trial_success" ? (
-                  <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
                 ) : (
                   <ThumbsUp className="w-4 h-4" />
                 )}
-                Trial Successful
+                Trial Successful → Onboarding
               </button>
               <button
                 onClick={handleTrialFail}
                 disabled={isPending}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold
-                  bg-red-500/15 text-red-400 border border-red-500/25
-                  hover:bg-red-500/25 hover:border-red-500/40
-                  disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        bg-red-500/15 text-red-400 border border-red-500/25
+        hover:bg-red-500/25 hover:border-red-500/40
+        disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {isPending && activeAction === "trial_fail" ? (
                   <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
@@ -443,6 +472,37 @@ function CandidateModal({
                   <ThumbsDown className="w-4 h-4" />
                 )}
                 Trial Failed
+              </button>
+            </div>
+          )}
+
+          {candidate.status === "onboarding" && (
+            <div className="flex gap-3">
+              <button
+                onClick={handleCompleteOnboarding}
+                disabled={isPending}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold
+        bg-emerald-500/15 text-emerald-400 border border-emerald-500/25
+        hover:bg-emerald-500/25 hover:border-emerald-500/40
+        disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {isPending && activeAction === "complete_onboarding" ? (
+                  <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+                ) : (
+                  <Award className="w-4 h-4" />
+                )}
+                Complete Onboarding
+              </button>
+              <button
+                onClick={handleTrialFail}
+                disabled={isPending}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold
+        bg-red-500/15 text-red-400 border border-red-500/25
+        hover:bg-red-500/25 hover:border-red-500/40
+        disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <XCircle className="w-4 h-4" />
+                Reject
               </button>
             </div>
           )}
@@ -894,6 +954,7 @@ export function CandidatesDashboard({
     | Candidate["status"]
     | "invite_sent"
     | "trial_offered_filter"
+    | "onboarding"
     | "onboarded_filter"
   >("all");
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
@@ -1008,6 +1069,7 @@ export function CandidatesDashboard({
     inviteSent: candidates.filter((c) => c.wa_sent_at !== null).length,
     approved: candidates.filter((c) => c.status === "approved").length,
     trialOffered: candidates.filter((c) => c.status === "trial_offered").length,
+    onboarding: candidates.filter((c) => c.status === "onboarding").length,
     onboarded: candidates.filter((c) => c.status === "on-boarded").length,
     rejected: candidates.filter((c) => c.status === "rejected").length,
   };
@@ -1121,6 +1183,13 @@ export function CandidatesDashboard({
               bg: "bg-purple-500/10 border-purple-500/20",
             },
             {
+              label: "Onboarding",
+              value: counts.onboarding,
+              icon: Clock,
+              color: "text-blue-400",
+              bg: "bg-blue-500/10 border-blue-500/20",
+            },
+            {
               label: "Onboarded",
               value: counts.onboarded,
               icon: Award,
@@ -1177,6 +1246,7 @@ export function CandidatesDashboard({
                 { value: "invite_sent", label: "Invite Sent" },
                 { value: "approved", label: "Approved" },
                 { value: "trial_offered_filter", label: "Trial Offered" },
+                { value: "onboarding", label: "Onboarding" },
                 { value: "onboarded_filter", label: "Onboarded" },
                 { value: "rejected", label: "Rejected" },
               ] as const
