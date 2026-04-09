@@ -551,18 +551,18 @@ function CandidateModal({
             </h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-3">
               <InfoRow
-                label="Passport Check"
+                label="AI Verification"
                 value={
-                  candidate.passport_valid === null ? (
-                    <span className="text-gray-500">Not checked</span>
-                  ) : candidate.passport_valid ? (
+                  candidate.ai_verification === "Passed" ? (
                     <span className="flex items-center gap-1 text-green-400">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Valid
+                      <ShieldCheck className="w-3.5 h-3.5" /> Passed
+                    </span>
+                  ) : candidate.ai_verification === "Failed" ? (
+                    <span className="flex items-center gap-1 text-red-400">
+                      <ShieldAlert className="w-3.5 h-3.5" /> Failed
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1 text-red-400">
-                      <ShieldAlert className="w-3.5 h-3.5" /> Invalid
-                    </span>
+                    <span className="text-gray-500">Not checked</span>
                   )
                 }
               />

@@ -554,10 +554,7 @@ function SuccessScreen() {
           Application Submitted!
         </h2>
         <p className="text-gray-300 text-base leading-relaxed">
-          Thank you! We&apos;ll be in touch soon 💕
-        </p>
-        <p className="text-gray-500 text-sm mt-3">
-          Keep an eye on your email and Instagram DMs.
+          Thank you! We&apos;ll be in touch soon.
         </p>
       </div>
     </div>
