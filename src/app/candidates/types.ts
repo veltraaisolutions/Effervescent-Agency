@@ -47,4 +47,9 @@ export interface Candidate {
   ai_verification: "Passed" | "Failed" | null;
   trial_venue: string | null;
   trial_mentor: string | null;
+  rotacloud_login: boolean;
+  sumup_account: boolean;
+  contract_signed: boolean;
+  added_to_whatsapp_group: boolean;
+  staff_notes: string | null;
 }

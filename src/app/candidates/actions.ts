@@ -119,6 +119,37 @@ export async function changeStatus(
 
 // ─── Trial Details ─────────────────────────────────────────────────────────────
 
+export async function updateOnboardingChecklist(
+  id: string,
+  patch: {
+    rotacloud_login?: boolean;
+    sumup_account?: boolean;
+    contract_signed?: boolean;
+    added_to_whatsapp_group?: boolean;
+  },
+): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .from("milli_candidates")
+    .update(patch)
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
+export async function updateStaffNotes(
+  id: string,
+  staff_notes: string,
+): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .from("milli_candidates")
+    .update({ staff_notes })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
 export async function updateTrialDetails(
   id: string,
   trial_venue: string,
