@@ -33,6 +33,7 @@ export interface Candidate {
     | "approved"
     | "interview booked"
     | "rejected"
+    | "rejected - non responsive"
     | "trial_offered"
     | "onboarding"
     | "on-boarded";
@@ -44,4 +45,6 @@ export interface Candidate {
   onboarded_at: string | null;
   trial_success: boolean | null;
   ai_verification: "Passed" | "Failed" | null;
+  trial_venue: string | null;
+  trial_mentor: string | null;
 }

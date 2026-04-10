@@ -103,12 +103,8 @@ export async function changeStatus(
   const patch: Record<string, unknown> = { status: to };
 
   if (to === "trial_offered") patch.trial_offered_at = now;
-  if (to === "onboarding") {
-    patch.trial_success = true;
-  }
-  if (to === "on-boarded") {
-    patch.onboarded_at = now;
-  }
+  if (to === "onboarding") patch.trial_success = true;
+  if (to === "on-boarded") patch.onboarded_at = now;
   if (to === "rejected" && (from === "trial_offered" || from === "onboarding"))
     patch.trial_success = false;
 
@@ -116,6 +112,23 @@ export async function changeStatus(
     .from("milli_candidates")
     .update(patch)
     .eq("id", id);
+
   if (error) return { error: error.message };
   return { patch };
+}
+
+// ─── Trial Details ─────────────────────────────────────────────────────────────
+
+export async function updateTrialDetails(
+  id: string,
+  trial_venue: string,
+  trial_mentor: string,
+): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .from("milli_candidates")
+    .update({ trial_venue, trial_mentor })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  return {};
 }
