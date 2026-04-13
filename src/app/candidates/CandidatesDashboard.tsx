@@ -27,6 +27,9 @@ import {
   Building2,
   User,
   Save,
+  NotebookPen,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { Candidate } from "./types";
 import {
@@ -37,6 +40,8 @@ import {
   markTrialFailed,
   changeStatus,
   updateTrialDetails,
+  updateOnboardingChecklist,
+  updateStaffNotes,
 } from "./actions";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -229,6 +234,11 @@ function CandidateModal({
   const [trialSaved, setTrialSaved] = useState(false);
   const [trialError, setTrialError] = useState("");
 
+  const [staffNotes, setStaffNotes] = useState(candidate.staff_notes ?? "");
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
+  const [notesError, setNotesError] = useState("");
+
   async function handleSaveTrialDetails() {
     setTrialSaving(true);
     setTrialError("");
@@ -247,6 +257,30 @@ function CandidateModal({
         trial_mentor: trialMentor,
       });
       setTimeout(() => setTrialSaved(false), 2000);
+    }
+  }
+
+  async function handleChecklistToggle(
+    field: "rotacloud_login" | "sumup_account" | "contract_signed" | "added_to_whatsapp_group",
+    value: boolean,
+  ) {
+    const result = await updateOnboardingChecklist(candidate.id, { [field]: value });
+    if (!result.error) {
+      onStatusChange(candidate.id, { [field]: value });
+    }
+  }
+
+  async function handleSaveNotes() {
+    setNotesSaving(true);
+    setNotesError("");
+    const result = await updateStaffNotes(candidate.id, staffNotes);
+    setNotesSaving(false);
+    if (result.error) {
+      setNotesError(result.error);
+    } else {
+      setNotesSaved(true);
+      onStatusChange(candidate.id, { staff_notes: staffNotes });
+      setTimeout(() => setNotesSaved(false), 2000);
     }
   }
 
@@ -659,6 +693,94 @@ function CandidateModal({
               )}
             </div>
           )}
+
+          {/* Onboarding Checklist */}
+          {(candidate.status === "onboarding" ||
+            candidate.status === "on-boarded") && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-[#1f1f1f] pb-2">
+                <h4 className="text-xs font-bold text-[#FDB8D7] uppercase tracking-widest">
+                  Onboarding Checklist
+                </h4>
+                {candidate.rotacloud_login &&
+                candidate.sumup_account &&
+                candidate.contract_signed &&
+                candidate.added_to_whatsapp_group ? (
+                  <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                    🟢 All Complete
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold text-red-400 flex items-center gap-1">
+                    🔴 Pending
+                  </span>
+                )}
+              </div>
+              <div className="space-y-2">
+                {(
+                  [
+                    { field: "rotacloud_login" as const, label: "Rotacloud Login" },
+                    { field: "sumup_account" as const, label: "SumUp Account" },
+                    { field: "contract_signed" as const, label: "Contract Signed" },
+                    { field: "added_to_whatsapp_group" as const, label: "Added to WhatsApp Group" },
+                  ] as const
+                ).map(({ field, label }) => (
+                  <button
+                    key={field}
+                    onClick={() => handleChecklistToggle(field, !candidate[field])}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#FDB8D7]/30 transition-colors text-left"
+                  >
+                    {candidate[field] ? (
+                      <CheckSquare className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    ) : (
+                      <Square className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                    )}
+                    <span
+                      className={`text-sm ${candidate[field] ? "text-emerald-400" : "text-gray-400"}`}
+                    >
+                      {label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Staff Notes */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-[#FDB8D7] uppercase tracking-widest border-b border-[#1f1f1f] pb-2 flex items-center gap-2">
+              <NotebookPen className="w-3.5 h-3.5" />
+              Staff Notes
+            </h4>
+            <textarea
+              value={staffNotes}
+              onChange={(e) => setStaffNotes(e.target.value)}
+              rows={4}
+              placeholder="Add internal notes about this candidate…"
+              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#FDB8D7]/50 resize-none transition-colors"
+            />
+            <button
+              onClick={handleSaveNotes}
+              disabled={notesSaving}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                bg-[#FDB8D7]/10 text-[#FDB8D7] border border-[#FDB8D7]/25
+                hover:bg-[#FDB8D7]/20 hover:border-[#FDB8D7]/40
+                disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {notesSaving ? (
+                <div className="w-4 h-4 border-2 border-[#FDB8D7]/30 border-t-[#FDB8D7] rounded-full animate-spin" />
+              ) : notesSaved ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {notesSaved ? "Saved!" : "Save Notes"}
+            </button>
+            {notesError && (
+              <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+                {notesError}
+              </p>
+            )}
+          </div>
 
           {/* Personal Info */}
           <Section title="Personal Information">
@@ -1440,6 +1562,7 @@ export function CandidatesDashboard({
                         { label: "Status", key: "status" as SortKey },
                         { label: "Trial Venue", key: null },
                         { label: "Trial Mentor", key: null },
+                        { label: "Onboarding", key: null },
                         { label: "Applied", key: "created_at" as SortKey },
                         { label: "", key: null },
                       ].map(({ label, key }) => (
@@ -1541,6 +1664,17 @@ export function CandidatesDashboard({
                               <User className="w-3 h-3 text-gray-600 flex-shrink-0" />
                               {c.trial_mentor}
                             </span>
+                          ) : (
+                            <span className="text-gray-600">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs whitespace-nowrap">
+                          {c.status === "onboarding" || c.status === "on-boarded" ? (
+                            c.rotacloud_login && c.sumup_account && c.contract_signed && c.added_to_whatsapp_group ? (
+                              <span title="All complete">🟢</span>
+                            ) : (
+                              <span title="Pending">🔴</span>
+                            )
                           ) : (
                             <span className="text-gray-600">—</span>
                           )}
