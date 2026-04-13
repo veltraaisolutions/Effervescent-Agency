@@ -52,4 +52,5 @@ export interface Candidate {
   contract_signed: boolean;
   added_to_whatsapp_group: boolean;
   staff_notes: string | null;
+  whitelisted: boolean;
 }

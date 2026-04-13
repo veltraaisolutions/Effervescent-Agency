@@ -261,10 +261,16 @@ function CandidateModal({
   }
 
   async function handleChecklistToggle(
-    field: "rotacloud_login" | "sumup_account" | "contract_signed" | "added_to_whatsapp_group",
+    field:
+      | "rotacloud_login"
+      | "sumup_account"
+      | "contract_signed"
+      | "added_to_whatsapp_group",
     value: boolean,
   ) {
-    const result = await updateOnboardingChecklist(candidate.id, { [field]: value });
+    const result = await updateOnboardingChecklist(candidate.id, {
+      [field]: value,
+    });
     if (!result.error) {
       onStatusChange(candidate.id, { [field]: value });
     }
@@ -718,15 +724,26 @@ function CandidateModal({
               <div className="space-y-2">
                 {(
                   [
-                    { field: "rotacloud_login" as const, label: "Rotacloud Login" },
+                    {
+                      field: "rotacloud_login" as const,
+                      label: "Rotacloud Login",
+                    },
                     { field: "sumup_account" as const, label: "SumUp Account" },
-                    { field: "contract_signed" as const, label: "Contract Signed" },
-                    { field: "added_to_whatsapp_group" as const, label: "Added to WhatsApp Group" },
+                    {
+                      field: "contract_signed" as const,
+                      label: "Contract Signed",
+                    },
+                    {
+                      field: "added_to_whatsapp_group" as const,
+                      label: "Added to WhatsApp Group",
+                    },
                   ] as const
                 ).map(({ field, label }) => (
                   <button
                     key={field}
-                    onClick={() => handleChecklistToggle(field, !candidate[field])}
+                    onClick={() =>
+                      handleChecklistToggle(field, !candidate[field])
+                    }
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#FDB8D7]/30 transition-colors text-left"
                   >
                     {candidate[field] ? (
@@ -1379,12 +1396,20 @@ export function CandidatesDashboard({
               </div>
             </div>
           </div>
-          <a
-            href="/apply"
-            className="text-xs text-gray-500 hover:text-[#FDB8D7] transition-colors"
-          >
-            → Apply Form
-          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href="/apply"
+              className="text-xs text-gray-500 hover:text-[#FDB8D7] transition-colors"
+            >
+              → Apply Form
+            </a>
+            <a
+              href="/whitelist"
+              className="text-xs text-gray-500 hover:text-[#FDB8D7] transition-colors"
+            >
+              → Whitelist
+            </a>
+          </div>
         </div>
       </header>
 
@@ -1669,8 +1694,12 @@ export function CandidatesDashboard({
                           )}
                         </td>
                         <td className="px-4 py-3 text-xs whitespace-nowrap">
-                          {c.status === "onboarding" || c.status === "on-boarded" ? (
-                            c.rotacloud_login && c.sumup_account && c.contract_signed && c.added_to_whatsapp_group ? (
+                          {c.status === "onboarding" ||
+                          c.status === "on-boarded" ? (
+                            c.rotacloud_login &&
+                            c.sumup_account &&
+                            c.contract_signed &&
+                            c.added_to_whatsapp_group ? (
                               <span title="All complete">🟢</span>
                             ) : (
                               <span title="Pending">🔴</span>
