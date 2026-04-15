@@ -359,6 +359,14 @@ function CandidateModal({
           status: "onboarding",
           trial_success: true,
         });
+        fetch("https://n8n.veltraai.net/webhook/successful_trial", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            full_name: candidate.full_name,
+            phone: candidate.phone,
+          }),
+        }).catch(() => {});
       }
       setActiveAction(null);
     });
