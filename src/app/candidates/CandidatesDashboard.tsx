@@ -365,6 +365,7 @@ function CandidateModal({
           body: JSON.stringify({
             full_name: candidate.full_name,
             phone: candidate.phone,
+            candidate_id: candidate.id,
           }),
         }).catch(() => {});
       }
