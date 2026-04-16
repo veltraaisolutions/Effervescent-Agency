@@ -6,6 +6,7 @@ import {
   Check,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   AlertCircle,
   Calendar,
   User,
@@ -15,37 +16,49 @@ const B = "#FDB8D7";
 const WEBHOOK_URL =
   "https://n8n.veltraai.net/webhook/Onboarding_Availability_form_submitted";
 
-// ─── Dynamic dates for current month ─────────────────────────────────────────
+// ─── Dynamic dates ────────────────────────────────────────────────────────────
 
-function getCurrentMonthDates(): string[] {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const monthName = now.toLocaleString("en-GB", { month: "long" });
+function getOrdinalSuffix(d: number) {
+  if (d === 1 || d === 21 || d === 31) return "st";
+  if (d === 2 || d === 22) return "nd";
+  if (d === 3 || d === 23) return "rd";
+  return "th";
+}
+
+function buildDates(year: number, month: number, fromDay = 1): string[] {
+  const monthName = new Date(year, month, 1).toLocaleString("en-GB", {
+    month: "long",
+  });
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-
   const dates: string[] = [];
-  for (let d = 1; d <= daysInMonth; d++) {
+  for (let d = fromDay; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
     const dayName = date.toLocaleString("en-GB", { weekday: "long" });
-    const suffix =
-      d === 1 || d === 21 || d === 31
-        ? "st"
-        : d === 2 || d === 22
-          ? "nd"
-          : d === 3 || d === 23
-            ? "rd"
-            : "th";
-    dates.push(`${dayName} ${d}${suffix} ${monthName}`);
+    dates.push(`${dayName} ${d}${getOrdinalSuffix(d)} ${monthName}`);
   }
   return dates;
 }
 
-const CURRENT_MONTH = new Date().toLocaleString("en-GB", {
+const now = new Date();
+const CY = now.getFullYear();
+const CM = now.getMonth();
+const CD = now.getDate();
+
+const NY = CM === 11 ? CY + 1 : CY;
+const NM = CM === 11 ? 0 : CM + 1;
+
+const CURRENT_MONTH_LABEL = now.toLocaleString("en-GB", {
   month: "long",
   year: "numeric",
 });
-const DATES = getCurrentMonthDates();
+const NEXT_MONTH_LABEL = new Date(NY, NM, 1).toLocaleString("en-GB", {
+  month: "long",
+  year: "numeric",
+});
+
+// Current month: from today onwards; Next month: full month
+const CURRENT_DATES = buildDates(CY, CM, CD);
+const NEXT_DATES = buildDates(NY, NM, 1);
 
 const LOCATIONS = [
   "Nottingham",
@@ -223,6 +236,70 @@ function CheckItem({
   );
 }
 
+// ─── Collapsible month section ────────────────────────────────────────────────
+
+function MonthSection({
+  label,
+  dates,
+  selectedDates,
+  onToggle,
+  defaultOpen = false,
+}: {
+  label: string;
+  dates: string[];
+  selectedDates: string[];
+  onToggle: (d: string) => void;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const selectedCount = dates.filter((d) => selectedDates.includes(d)).length;
+
+  return (
+    <div className="border border-[#2a2a2a] rounded-2xl overflow-hidden">
+      {/* Header */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-[#161616] hover:bg-[#1c1c1c] transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <Calendar
+            className="w-4 h-4"
+            style={{ color: B }}
+          />
+          <span className="text-sm font-bold text-white">{label}</span>
+          {selectedCount > 0 && (
+            <span
+              className="text-xs font-bold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: `${B}20`, color: B }}
+            >
+              {selectedCount} selected
+            </span>
+          )}
+        </div>
+        <ChevronDown
+          className="w-4 h-4 text-gray-500 transition-transform duration-200"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+        />
+      </button>
+
+      {/* Date list */}
+      {open && (
+        <div className="px-3 pb-3 pt-2 space-y-1.5 bg-[#111111]">
+          {dates.map((d) => (
+            <CheckItem
+              key={d}
+              checked={selectedDates.includes(d)}
+              onChange={() => onToggle(d)}
+              label={d}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Section divider ──────────────────────────────────────────────────────────
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -278,7 +355,6 @@ function OnboardingForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Tab 1 — Personal
-  const [fullName, setFullName] = useState("");
   const [homeAddress, setHomeAddress] = useState("");
 
   // Tab 1 — Emergency contact
@@ -307,7 +383,6 @@ function OnboardingForm() {
     );
   }
 
-  // Sort code: auto-format to XX-XX-XX, max 6 digits
   function handleSortCode(raw: string) {
     const digits = raw.replace(/\D/g, "").slice(0, 6);
     const parts = digits.match(/.{1,2}/g) ?? [];
@@ -364,7 +439,6 @@ function OnboardingForm() {
             bank_sort_code: bankSortCode,
           },
           availability: {
-            month: CURRENT_MONTH,
             unavailable_all_month: unavailableAll,
             dates: unavailableAll ? [] : selectedDates,
             locations: selectedLocations,
@@ -433,9 +507,7 @@ function OnboardingForm() {
               className="text-xl font-bold"
               style={{ color: B }}
             >
-              {tab === "onboarding"
-                ? "Your Details"
-                : `${CURRENT_MONTH} Availability`}
+              {tab === "onboarding" ? "Your Details" : "Availability"}
             </h2>
           </div>
 
@@ -443,7 +515,6 @@ function OnboardingForm() {
             {/* ── Tab 1 ── */}
             {tab === "onboarding" && (
               <>
-                {/* Personal */}
                 <SectionTitle>Personal</SectionTitle>
                 <div>
                   <FieldLabel required>Home Address</FieldLabel>
@@ -455,7 +526,6 @@ function OnboardingForm() {
                   <FieldError message={errors.homeAddress} />
                 </div>
 
-                {/* Emergency Contact */}
                 <SectionTitle>Emergency Contact</SectionTitle>
 
                 <div>
@@ -489,7 +559,6 @@ function OnboardingForm() {
                   <FieldError message={errors.emergencyPhone} />
                 </div>
 
-                {/* Bank Details */}
                 <SectionTitle>Bank Details</SectionTitle>
 
                 <div>
@@ -525,10 +594,11 @@ function OnboardingForm() {
             {/* ── Tab 2 ── */}
             {tab === "availability" && (
               <>
+                {/* Unavailable all month toggle — above both month sections */}
                 <div>
                   <FieldLabel required>Dates Available</FieldLabel>
                   <FieldError message={errors.dates} />
-                  <div className="space-y-1.5 mt-2">
+                  <div className="space-y-3 mt-2">
                     <CheckItem
                       checked={unavailableAll}
                       onChange={(v) => {
@@ -537,15 +607,25 @@ function OnboardingForm() {
                       }}
                       label="Unavailable All Month"
                     />
-                    {!unavailableAll &&
-                      DATES.map((d) => (
-                        <CheckItem
-                          key={d}
-                          checked={selectedDates.includes(d)}
-                          onChange={() => toggleDate(d)}
-                          label={d}
+
+                    {!unavailableAll && (
+                      <>
+                        <MonthSection
+                          label={CURRENT_MONTH_LABEL}
+                          dates={CURRENT_DATES}
+                          selectedDates={selectedDates}
+                          onToggle={toggleDate}
+                          defaultOpen={true}
                         />
-                      ))}
+                        <MonthSection
+                          label={NEXT_MONTH_LABEL}
+                          dates={NEXT_DATES}
+                          selectedDates={selectedDates}
+                          onToggle={toggleDate}
+                          defaultOpen={false}
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
 
