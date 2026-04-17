@@ -43,6 +43,7 @@ import {
   updateOnboardingChecklist,
   updateStaffNotes,
 } from "./actions";
+import Link from "next/link";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1493,19 +1494,19 @@ export function CandidatesDashboard({
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <a
+          <div className="fixed top-4 right-6 z-50 flex items-center gap-3">
+            <Link
               href="/apply"
-              className="text-xs text-gray-500 hover:text-[#FDB8D7] transition-colors"
+              className="px-4 py-1.5 text-sm text-gray-300 border border-white/10 rounded-lg bg-white/5 hover:border-[#FDB8D7]/50 hover:text-[#FDB8D7] hover:bg-[#FDB8D7]/5 transition-all duration-200 tracking-wide"
             >
-              → Apply Form
-            </a>
-            <a
+              Apply Form
+            </Link>
+            <Link
               href="/whitelist"
-              className="text-xs text-gray-500 hover:text-[#FDB8D7] transition-colors"
+              className="px-4 py-1.5 text-sm text-gray-300 border border-white/10 rounded-lg bg-white/5 hover:border-[#FDB8D7]/50 hover:text-[#FDB8D7] hover:bg-[#FDB8D7]/5 transition-all duration-200 tracking-wide"
             >
-              → Whitelist
-            </a>
+              Whitelist
+            </Link>
           </div>
         </div>
       </header>
