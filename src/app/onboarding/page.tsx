@@ -615,7 +615,7 @@ function OnboardingForm() {
                           dates={CURRENT_DATES}
                           selectedDates={selectedDates}
                           onToggle={toggleDate}
-                          defaultOpen={true}
+                          defaultOpen={false}
                         />
                         <MonthSection
                           label={NEXT_MONTH_LABEL}
