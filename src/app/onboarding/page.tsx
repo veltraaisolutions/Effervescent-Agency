@@ -59,6 +59,7 @@ const NEXT_MONTH_LABEL = new Date(NY, NM, 1).toLocaleString("en-GB", {
 // Current month: from today onwards; Next month: full month
 const CURRENT_DATES = buildDates(CY, CM, CD);
 const NEXT_DATES = buildDates(NY, NM, 1);
+const SHOW_NEXT_MONTH = CD >= 16;
 
 const LOCATIONS = [
   "Nottingham",
@@ -617,13 +618,15 @@ function OnboardingForm() {
                           onToggle={toggleDate}
                           defaultOpen={false}
                         />
-                        <MonthSection
-                          label={NEXT_MONTH_LABEL}
-                          dates={NEXT_DATES}
-                          selectedDates={selectedDates}
-                          onToggle={toggleDate}
-                          defaultOpen={false}
-                        />
+                        {SHOW_NEXT_MONTH && (
+                          <MonthSection
+                            label={NEXT_MONTH_LABEL}
+                            dates={NEXT_DATES}
+                            selectedDates={selectedDates}
+                            onToggle={toggleDate}
+                            defaultOpen={false}
+                          />
+                        )}
                       </>
                     )}
                   </div>
