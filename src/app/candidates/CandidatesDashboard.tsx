@@ -368,7 +368,7 @@ function CandidateModal({
             phone: candidate.phone,
             candidate_id: candidate.id,
           }),
-        }).catch(() => {});
+        });
         fetch("https://n8n.veltraai.net/webhook/send-Docusign", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
