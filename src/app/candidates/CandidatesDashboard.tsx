@@ -18,7 +18,6 @@ import {
   Briefcase,
   ShieldCheck,
   ShieldAlert,
-  Clock,
   ChevronDown,
   ChevronUp,
   Star,
@@ -1572,95 +1571,8 @@ export function CandidatesDashboard({
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-          {/* Total card uses brand color */}
-          <div
-            className="rounded-2xl border p-4 flex items-center gap-3"
-            style={{ borderColor: "#FDB8D720", backgroundColor: "#FDB8D708" }}
-          >
-            <Briefcase
-              className="w-5 h-5 flex-shrink-0"
-              style={{ color: "#FDB8D7" }}
-            />
-            <div>
-              <p
-                className="text-2xl font-bold leading-none"
-                style={{ color: "#FDB8D7" }}
-              >
-                {counts.total}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">Total</p>
-            </div>
-          </div>
-          {[
-            {
-              label: "Pending",
-              value: counts.pending,
-              icon: Clock,
-              color: "text-yellow-400",
-              bg: "bg-yellow-500/10 border-yellow-500/20",
-            },
-            {
-              label: "Invite Sent",
-              value: counts.inviteSent,
-              icon: Mail,
-              color: "text-blue-400",
-              bg: "bg-blue-500/10 border-blue-500/20",
-            },
-            {
-              label: "Interview Booked",
-              value: counts.interviewBooked,
-              icon: Calendar,
-              color: "text-sky-400",
-              bg: "bg-sky-500/10 border-sky-500/20",
-            },
-            {
-              label: "Trial Offered",
-              value: counts.trialOffered,
-              icon: Star,
-              color: "text-purple-400",
-              bg: "bg-purple-500/10 border-purple-500/20",
-            },
-            {
-              label: "Onboarding",
-              value: counts.onboarding,
-              icon: Clock,
-              color: "text-blue-400",
-              bg: "bg-blue-500/10 border-blue-500/20",
-            },
-            {
-              label: "Onboarded",
-              value: counts.onboarded,
-              icon: Award,
-              color: "text-emerald-400",
-              bg: "bg-emerald-500/10 border-emerald-500/20",
-            },
-            {
-              label: "Rejected",
-              value: counts.rejected,
-              icon: XCircle,
-              color: "text-red-400",
-              bg: "bg-red-500/10 border-red-500/20",
-            },
-          ].map(({ label, value, icon: Icon, color, bg }) => (
-            <div
-              key={label}
-              className={`rounded-2xl border p-4 flex items-center gap-3 ${bg}`}
-            >
-              <Icon className={`w-5 h-5 flex-shrink-0 ${color}`} />
-              <div>
-                <p className={`text-2xl font-bold leading-none ${color}`}>
-                  {value}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">{label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
         {/* Search & Filter */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col gap-4">
           <input
             type="text"
             value={search}
@@ -1678,19 +1590,59 @@ export function CandidatesDashboard({
               e.currentTarget.style.borderColor = "";
             }}
           />
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {(
               [
-                { value: "all", label: "All" },
-                { value: "pending", label: "Pending" },
-                { value: "invite_sent", label: "Invite Sent" },
-                { value: "interview booked", label: "Interview Booked" },
-                { value: "trial_offered_filter", label: "Trial Offered" },
-                { value: "onboarding", label: "Onboarding" },
-                { value: "onboarded_filter", label: "Onboarded" },
-                { value: "rejected", label: "Rejected" },
+                {
+                  value: "all",
+                  label: "All",
+                  count: candidates.length,
+                  color: "style",
+                },
+                {
+                  value: "pending",
+                  label: "Pending",
+                  count: counts.pending,
+                  color: "yellow",
+                },
+                {
+                  value: "invite_sent",
+                  label: "Invite Sent",
+                  count: counts.inviteSent,
+                  color: "blue",
+                },
+                {
+                  value: "interview booked",
+                  label: "Interview Booked",
+                  count: counts.interviewBooked,
+                  color: "sky",
+                },
+                {
+                  value: "trial_offered_filter",
+                  label: "Trial Offered",
+                  count: counts.trialOffered,
+                  color: "purple",
+                },
+                {
+                  value: "onboarding",
+                  label: "Onboarding",
+                  count: counts.onboarding,
+                  color: "blue",
+                },
+                {
+                  value: "onboarded_filter",
+                  label: "Onboarded",
+                  count: counts.onboarded,
+                  color: "emerald",
+                },
+                {
+                  value: "rejected",
+                  label: "Rejected",
+                  count: counts.rejected,
+                  color: "red",
+                },
               ] as const
-            ).map(({ value, label }) => (
+            ).map(({ value, label, count }) => (
               <button
                 key={value}
                 onClick={() => setStatusFilter(value)}
@@ -1703,13 +1655,22 @@ export function CandidatesDashboard({
                       }
                     : {}
                 }
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                className={`px-5 py-3 rounded-xl text-sm font-semibold border transition-all flex items-center gap-2 ${
                   statusFilter === value
                     ? ""
                     : "bg-[#111111] text-gray-400 border-[#1f1f1f] hover:border-[#FDB8D7]/50 hover:text-[#FDB8D7]"
                 }`}
               >
                 {label}
+                <span
+                  className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                    statusFilter === value
+                      ? "bg-black/20 text-[#1a0a10]"
+                      : "bg-white/10 text-gray-300"
+                  }`}
+                >
+                  {count}
+                </span>
               </button>
             ))}
           </div>
