@@ -138,7 +138,6 @@ const REJECT_REASONS = [
   "Unsuccessful interview",
   "Non-attendance to interview",
   "Non-attendance to trial shift",
-  "Underage (Below 18)",
 ];
 
 function RejectReasonModal({
