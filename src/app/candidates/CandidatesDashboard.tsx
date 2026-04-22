@@ -25,7 +25,6 @@ import {
   ThumbsUp,
   ThumbsDown,
   Award,
-  Building2,
   User,
   Save,
   NotebookPen,
@@ -229,7 +228,7 @@ function CandidateModal({
   >(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
 
-  const [trialVenue, setTrialVenue] = useState(candidate.trial_venue ?? "");
+  const [trialDate, setTrialDate] = useState(candidate.trial_date ?? "");
   const [trialMentor, setTrialMentor] = useState(candidate.trial_mentor ?? "");
   const [trialSaving, setTrialSaving] = useState(false);
   const [trialSaved, setTrialSaved] = useState(false);
@@ -245,7 +244,7 @@ function CandidateModal({
     setTrialError("");
     const result = await updateTrialDetails(
       candidate.id,
-      trialVenue,
+      trialDate,
       trialMentor,
     );
     setTrialSaving(false);
@@ -254,7 +253,7 @@ function CandidateModal({
     } else {
       setTrialSaved(true);
       onStatusChange(candidate.id, {
-        trial_venue: trialVenue,
+        trial_date: trialDate,
         trial_mentor: trialMentor,
       });
       setTimeout(() => setTrialSaved(false), 2000);
@@ -689,16 +688,15 @@ function CandidateModal({
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                    Trial Venue
+                    Trial Date
                   </label>
                   <div className="flex items-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2 focus-within:border-[#FDB8D7]/50 transition-colors">
-                    <Building2 className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                    <Calendar className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
                     <input
-                      type="text"
-                      value={trialVenue}
-                      onChange={(e) => setTrialVenue(e.target.value)}
-                      placeholder="e.g. Venue name"
-                      className="flex-1 bg-transparent text-sm text-white placeholder:text-gray-600 focus:outline-none"
+                      type="date"
+                      value={trialDate}
+                      onChange={(e) => setTrialDate(e.target.value)}
+                      className="flex-1 bg-transparent text-sm text-white focus:outline-none [color-scheme:dark]"
                     />
                   </div>
                 </div>
@@ -1737,7 +1735,7 @@ export function CandidatesDashboard({
                         { label: "Location", key: null },
                         { label: "Gender", key: null },
                         { label: "Status", key: "status" as SortKey },
-                        { label: "Trial Venue", key: null },
+                        { label: "Trial Date", key: null },
                         { label: "Trial Mentor", key: null },
                         { label: "Onboarding", key: null },
                         { label: "Applied", key: "created_at" as SortKey },
@@ -1826,10 +1824,10 @@ export function CandidatesDashboard({
                           )}
                         </td>
                         <td className="px-4 py-3 text-gray-300 text-xs whitespace-nowrap">
-                          {c.trial_venue ? (
+                          {c.trial_date ? (
                             <span className="flex items-center gap-1.5">
-                              <Building2 className="w-3 h-3 text-gray-600 flex-shrink-0" />
-                              {c.trial_venue}
+                              <Calendar className="w-3 h-3 text-gray-600 flex-shrink-0" />
+                              {formatDate(c.trial_date)}
                             </span>
                           ) : (
                             <span className="text-gray-600">—</span>

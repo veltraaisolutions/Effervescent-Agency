@@ -45,7 +45,7 @@ export interface Candidate {
   onboarded_at: string | null;
   trial_success: boolean | null;
   ai_verification: "Passed" | "Failed" | null;
-  trial_venue: string | null;
+  trial_date: string | null;
   trial_mentor: string | null;
   rotacloud_login: boolean;
   sumup_account: boolean;

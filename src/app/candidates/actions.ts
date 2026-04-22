@@ -155,12 +155,12 @@ export async function updateStaffNotes(
 
 export async function updateTrialDetails(
   id: string,
-  trial_venue: string,
+  trial_date: string,
   trial_mentor: string,
 ): Promise<{ error?: string }> {
   const { error } = await supabase
     .from("milli_candidates")
-    .update({ trial_venue, trial_mentor })
+    .update({ trial_date, trial_mentor })
     .eq("id", id);
 
   if (error) return { error: error.message };
