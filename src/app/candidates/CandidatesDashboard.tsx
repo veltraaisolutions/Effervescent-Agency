@@ -83,6 +83,7 @@ function StatusBadge({ status }: { status: Candidate["status"] }) {
     pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25",
     approved: "bg-green-500/15 text-green-400 border-green-500/25",
     "interview booked": "bg-sky-500/15 text-sky-400 border-sky-500/25",
+    "interview rejected": "bg-red-500/15 text-red-400 border-red-500/25",
     "rejected - non responsive":
       "bg-orange-500/15 text-orange-400 border-orange-500/25",
     rejected: "bg-red-500/15 text-red-400 border-red-500/25",
@@ -90,6 +91,7 @@ function StatusBadge({ status }: { status: Candidate["status"] }) {
     onboarding: "bg-blue-500/15 text-blue-400 border-blue-500/25",
     "on-boarded": "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
   };
+
   return (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${map[status]}`}
@@ -98,7 +100,6 @@ function StatusBadge({ status }: { status: Candidate["status"] }) {
     </span>
   );
 }
-
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   if (!value && value !== false && value !== 0) return null;
   return (
