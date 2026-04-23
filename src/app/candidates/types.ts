@@ -32,6 +32,7 @@ export interface Candidate {
     | "pending"
     | "approved"
     | "interview booked"
+    | "interview rejected"
     | "rejected"
     | "rejected - non responsive"
     | "trial_offered"
