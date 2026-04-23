@@ -58,6 +58,7 @@ const STATUS_LABEL: Record<Candidate["status"], string> = {
   pending: "Pending",
   approved: "Approved",
   "interview booked": "Interview Booked",
+  "interview rejected": "Interview Rejected",
   "rejected - non responsive": "Rejected - Non Responsive",
   rejected: "Rejected",
   trial_offered: "Trial Offered",
