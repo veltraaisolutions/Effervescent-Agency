@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo, ChangeEvent, FormEvent } from "react";
+import Image from "next/image";
 import {
   ChevronDown,
   AlertCircle,
@@ -9,85 +10,64 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const B = "#FDB8D7";
 const WEBHOOK_URL = "https://n8n.veltraai.net/webhook/sales-tracker";
 
-const VENUES = [
-  "Aberdeen",
-  "Bedford",
-  "Billericay (Essex)",
-  "Birmingham",
-  "Bristol",
-  "Cardiff",
-  "Chelmsford",
-  "Cheltenham",
-  "Chester",
-  "Chichester",
-  "Colchester",
-  "Coventry",
-  "Derby",
-  "Dundee",
-  "Evesham",
-  "Exeter",
-  "Glasgow",
-  "Guildford",
-  "Herne Bay",
-  "Hinckley",
-  "Hull",
-  "Inverness",
-  "Leicester",
-  "Leeds",
-  "Liverpool",
-  "London - Aldgate",
-  "London - Camden",
-  "London - Edgware",
-  "London - Greenwich",
-  "London - Harlesden",
-  "London - Hounslow",
-  "Loughborough",
-  "Manchester",
-  "Mansfield",
-  "Margate",
-  "Milton Keynes",
-  "Newcastle",
-  "Newport",
-  "Northampton",
-  "Nottingham",
-  "Peterborough",
-  "Plymouth",
-  "Portsmouth/Southsea",
-  "Sheffield",
-  "Southend",
-  "Solihull",
-  "Southampton",
-  "St Albans",
-  "Walsall",
-  "Wolverhampton",
-  "Worthing",
-  "Thanet",
-  "Swansea",
-  "Wrexham",
-  "Winchester",
-  "Worcester",
-];
+const VENUE_PRICES: Record<string, number> = {
+  "2Funky": 70,
+  "Binks Yard": 85,
+  Bounty: 70,
+  Cavendish: 70,
+  Crib: 80,
+  Cucamara: 65,
+  "Fat Cat Derby": 65,
+  Ghost: 60,
+  "Grumpy Monkey": 70,
+  Hukka: 100,
+  Icon: 65,
+  "Icon BAR CRAW": 40,
+  "The Camden": 180,
+  "Lace Bar": 70,
+  "Loft Bar": 80,
+  "Mixing House": 65,
+  "The Nest": 70,
+  "New Foresters": 70,
+  "Oz Bar": 65,
+  "Pitcher & Piano": 100,
+  Popworld: 70,
+  "Revolution South": 50,
+  "Revs de cuba": 70,
+  "Route One": 65,
+  "Secret Garden": 70,
+  "Secret vault": 70,
+  "Steins Derby": 50,
+  "The Kings": 55,
+  "The Mail Room": 100,
+  "Trent Navigation": 80,
+  Tunnel: 65,
+  "Vat & Fiddle": 60,
+  Vibe: 60,
+  XOYO: 78.75,
+  DEFAULT: 65,
+};
+
+const VENUES = Object.keys(VENUE_PRICES)
+  .filter((v) => v !== "DEFAULT")
+  .sort();
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
 interface SalesForm {
   date: string;
   venue: string;
   name: string;
   email: string;
   bottles: string;
-  barEarnings: string;
   card: string;
   cash: string;
-  deductions: string;
   paidBarDirectly: "YES" | "NO" | "";
   agencySentMoney: "YES" | "NO" | "";
-  images: string[]; // Base64 strings
+  agencyAmount: string;
+  images: string[];
 }
 
 const INITIAL: SalesForm = {
@@ -96,39 +76,13 @@ const INITIAL: SalesForm = {
   name: "",
   email: "",
   bottles: "",
-  barEarnings: "",
   card: "",
   cash: "",
-  deductions: "",
   paidBarDirectly: "",
   agencySentMoney: "",
+  agencyAmount: "",
   images: [],
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function parsePound(v: string): number {
-  return parseFloat(v) || 0;
-}
-
-function compute(form: SalesForm) {
-  const card = parsePound(form.card);
-  const cash = parsePound(form.cash);
-  const deductions = parsePound(form.deductions);
-
-  const totalRevenue = card + cash;
-  const rawCommission = totalRevenue * 0.25;
-  // New Logic: Deduction is taken specifically from the Seller's Commission
-  const sellerCommission = Math.max(0, rawCommission - deductions);
-
-  return { totalRevenue, sellerCommission, deductionFromComm: deductions };
-}
-
-function fmt(n: number) {
-  return `£${n.toFixed(2)}`;
-}
-
-// ─── UI Components ────────────────────────────────────────────────────────────
 
 function FieldLabel({
   children,
@@ -138,12 +92,12 @@ function FieldLabel({
   required?: boolean;
 }) {
   return (
-    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2">
       {children}{" "}
       {required && (
         <span
           style={{ color: B }}
-          className="ml-0.5"
+          className="ml-1"
         >
           *
         </span>
@@ -152,199 +106,135 @@ function FieldLabel({
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
 export default function SalesTrackerPage() {
   const [form, setForm] = useState<SalesForm>(INITIAL);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const upd = (patch: Partial<SalesForm>) =>
     setForm((f) => ({ ...f, ...patch }));
-  const computed = compute(form);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const computed = useMemo(() => {
+    const card = parseFloat(form.card) || 0;
+    const cash = parseFloat(form.cash) || 0;
+    const bottles = parseFloat(form.bottles) || 0;
+    const agencyCash = parseFloat(form.agencyAmount) || 0;
+
+    const pricePerBottle = VENUE_PRICES[form.venue] || VENUE_PRICES["DEFAULT"];
+    const barEarnings = bottles * pricePerBottle;
+    const totalRevenue = card + cash;
+    const rawCommission = totalRevenue * 0.25;
+
+    let deductions = 0;
+    if (form.paidBarDirectly === "YES") deductions += barEarnings;
+    if (form.agencySentMoney === "YES") deductions += agencyCash;
+
+    return {
+      totalRevenue,
+      sellerCommission: Math.max(0, rawCommission - deductions),
+      barEarnings,
+      deductions,
+    };
+  }, [form]);
+
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (form.images.length + files.length > 2) {
-      alert("Maximum 2 images allowed");
-      return;
-    }
-
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setForm((prev) => ({
-          ...prev,
-          images: [...prev.images, base64String],
-        }));
+        const base64 = reader.result as string;
+        setForm((prev) => ({ ...prev, images: [...prev.images, base64] }));
       };
       reader.readAsDataURL(file);
     });
   };
 
-  const removeImage = (index: number) => {
-    setForm((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
-  };
-
-  function validate(): Record<string, string> {
-    const e: Record<string, string> = {};
-    if (!form.date) e.date = "Required";
-    if (!form.venue) e.venue = "Required";
-    if (!form.name.trim()) e.name = "Required";
-    if (!form.email.trim() || !form.email.includes("@"))
-      e.email = "Valid email required";
-    if (!form.bottles.trim()) e.bottles = "Required";
-    if (!form.card.trim() && !form.cash.trim())
-      e.card = "Enter card or cash takings";
-    if (!form.paidBarDirectly) e.paidBarDirectly = "Select an option";
-    if (!form.agencySentMoney) e.agencySentMoney = "Select an option";
-    return e;
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    setErrors({});
     setSubmitting(true);
-
-    const payload = {
-      ...form,
-      ...computed,
-      submittedAt: new Date().toISOString(),
-    };
-
     try {
-      const response = await fetch(WEBHOOK_URL, {
+      const res = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ body: { ...form, ...computed } }),
       });
-
-      if (response.ok) {
-        setSubmitted(true);
-      } else {
-        throw new Error("Webhook failed");
-      }
+      if (res.ok) setSubmitted(true);
     } catch (err) {
-      alert("Submission failed. Please check your connection and try again.");
+      alert("Submission failed.");
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
-  if (submitted) {
+  if (submitted)
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
-        <div className="bg-[#111111] p-8 rounded-3xl border border-[#1f1f1f] text-center max-w-md w-full shadow-2xl">
-          <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="w-10 h-10 text-green-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Shift Submitted
-          </h2>
-          <p className="text-gray-400 mb-6">
-            Your shift details and receipts have been sent successfully.
-          </p>
+      <div className="min-h-screen bg-black flex items-center justify-center p-6 text-center">
+        <div className="bg-[#111] p-12 rounded-[3rem] border border-[#222]">
+          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-6" />
+          <h2 className="text-2xl font-black mb-6">SHIFT SUBMITTED</h2>
           <button
             onClick={() => {
               setSubmitted(false);
               setForm(INITIAL);
             }}
             style={{ backgroundColor: B }}
-            className="w-full py-3 rounded-xl text-black font-bold"
+            className="px-8 py-4 rounded-2xl text-black font-black uppercase text-xs"
           >
-            Submit Another Shift
+            New Entry
           </button>
         </div>
       </div>
     );
-  }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-[#FDB8D733]">
-      <div className="max-w-2xl mx-auto px-4 py-10">
+    <div className="min-h-screen bg-black text-white p-6 font-sans">
+      <div className="max-w-xl mx-auto py-12 space-y-8">
+        <header className="text-center">
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 mb-2">
+            Effervescent Agency
+          </p>
+          <h1 className="text-4xl font-black italic tracking-tighter uppercase">
+            Shift Sales Entry
+          </h1>
+        </header>
+
         <form
           onSubmit={handleSubmit}
-          noValidate
+          className="space-y-6"
         >
-          <div className="bg-[#111111] rounded-[2rem] border border-[#1f1f1f] overflow-hidden shadow-2xl">
-            {/* Header */}
-            <div className="px-8 py-7 bg-gradient-to-br from-[#2a0d1c] to-[#3d1228] border-b border-[#ffffff05]">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-60">
-                Effervescent Agency
-              </p>
-              <h2
-                className="text-2xl font-black italic tracking-tight"
-                style={{ color: B }}
-              >
-                SHIFT SALES ENTRY
-              </h2>
-            </div>
-
-            <div className="p-8 space-y-6">
-              {/* Personal Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <FieldLabel required>Full Name</FieldLabel>
-                  <input
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#FDB8D7] transition-all"
-                    value={form.name}
-                    onChange={(e) => upd({ name: e.target.value })}
-                    placeholder="e.g. Jane Doe"
-                  />
-                  {errors.name && (
-                    <p className="text-red-400 text-[10px] mt-1 font-bold">
-                      {errors.name}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <FieldLabel required>Email Address</FieldLabel>
-                  <input
-                    type="email"
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#FDB8D7] transition-all"
-                    value={form.email}
-                    onChange={(e) => upd({ email: e.target.value })}
-                    placeholder="jane@example.com"
-                  />
-                  {errors.email && (
-                    <p className="text-red-400 text-[10px] mt-1 font-bold">
-                      {errors.email}
-                    </p>
-                  )}
-                </div>
+          {/* Main Sales Info */}
+          <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f] space-y-6">
+            <div className="grid grid-cols-1 gap-6">
+              <div>
+                <FieldLabel required>Full Name</FieldLabel>
+                <input
+                  className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm focus:border-[#FDB8D7] outline-none transition-all"
+                  value={form.name}
+                  onChange={(e) => upd({ name: e.target.value })}
+                  required
+                />
               </div>
-
-              {/* Shift Basics */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <FieldLabel required>Date</FieldLabel>
-                  <input
-                    type="date"
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm focus:outline-none"
-                    value={form.date}
-                    onChange={(e) => upd({ date: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <FieldLabel required>Venue</FieldLabel>
+              <div>
+                <FieldLabel required>Date</FieldLabel>
+                <input
+                  type="date"
+                  className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm focus:border-[#FDB8D7] outline-none"
+                  value={form.date}
+                  onChange={(e) => upd({ date: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <FieldLabel required>Venue</FieldLabel>
+                <div className="relative">
                   <select
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm focus:outline-none appearance-none"
+                    className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm focus:border-[#FDB8D7] outline-none appearance-none cursor-pointer"
                     value={form.venue}
                     onChange={(e) => upd({ venue: e.target.value })}
+                    required
                   >
-                    <option value="">Select venue...</option>
+                    <option value="">Select Venue</option>
                     {VENUES.map((v) => (
                       <option
                         key={v}
@@ -354,217 +244,187 @@ export default function SalesTrackerPage() {
                       </option>
                     ))}
                   </select>
+                  <ChevronDown className="absolute right-6 top-4 w-4 h-4 opacity-30 pointer-events-none" />
                 </div>
               </div>
+            </div>
 
-              {/* Numerical Data */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                <div>
-                  <FieldLabel required>Bottles Sold</FieldLabel>
-                  <input
-                    type="number"
-                    step="0.1"
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm focus:outline-none"
-                    value={form.bottles}
-                    onChange={(e) => upd({ bottles: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <FieldLabel>Card Total</FieldLabel>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3 text-gray-500 text-sm">
-                      £
-                    </span>
-                    <input
-                      type="number"
-                      className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl pl-7 pr-4 py-3 text-sm focus:outline-none"
-                      value={form.card}
-                      onChange={(e) => upd({ card: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <FieldLabel>Cash Total</FieldLabel>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3 text-gray-500 text-sm">
-                      £
-                    </span>
-                    <input
-                      type="number"
-                      className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl pl-7 pr-4 py-3 text-sm focus:outline-none"
-                      value={form.cash}
-                      onChange={(e) => upd({ cash: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Deductions & Bar Earnings */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <FieldLabel>Bar Earnings (Ref Only)</FieldLabel>
-                  <input
-                    type="number"
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm focus:outline-none"
-                    value={form.barEarnings}
-                    onChange={(e) => upd({ barEarnings: e.target.value })}
-                    placeholder="£ 0.00"
-                  />
-                </div>
-                <div>
-                  <FieldLabel>Advance/Deductions</FieldLabel>
-                  <input
-                    type="number"
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm focus:outline-none border-dashed"
-                    value={form.deductions}
-                    onChange={(e) => upd({ deductions: e.target.value })}
-                    placeholder="£ 0.00"
-                  />
-                  <p className="text-[10px] text-gray-500 mt-1 italic">
-                    Money borrowed for bottles
-                  </p>
-                </div>
-              </div>
-
-              {/* Questions */}
-              <div className="space-y-4 pt-2">
-                <div className="p-4 bg-[#161616] rounded-2xl border border-[#222]">
-                  <FieldLabel required>
-                    Did you pay the bar directly?
-                  </FieldLabel>
-                  <div className="flex gap-4 mt-2">
-                    {["YES", "NO"].map((opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => upd({ paidBarDirectly: opt as any })}
-                        className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${form.paidBarDirectly === opt ? "bg-white text-black" : "bg-[#222] text-gray-500"}`}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="p-4 bg-[#161616] rounded-2xl border border-[#222]">
-                  <FieldLabel required>
-                    Did agency send you money to pay bar?
-                  </FieldLabel>
-                  <div className="flex gap-4 mt-2">
-                    {["YES", "NO"].map((opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => upd({ agencySentMoney: opt as any })}
-                        className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${form.agencySentMoney === opt ? "bg-white text-black" : "bg-[#222] text-gray-500"}`}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Image Upload */}
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <FieldLabel>Receipts & Bottles (Max 2)</FieldLabel>
-                <div className="grid grid-cols-2 gap-4 mt-2">
-                  {form.images.map((img, idx) => (
-                    <div
-                      key={idx}
-                      className="relative group aspect-video rounded-xl overflow-hidden border border-[#333]"
-                    >
-                      <img
-                        src={img}
-                        alt="upload"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-2 right-2 p-1.5 bg-black/50 backdrop-blur-md rounded-full hover:bg-red-500 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                  {form.images.length < 2 && (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="aspect-video rounded-xl border-2 border-dashed border-[#333] flex flex-col items-center justify-center text-gray-500 hover:border-[#FDB8D7] hover:text-[#FDB8D7] transition-all"
-                    >
-                      <Upload className="w-6 h-6 mb-2" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">
-                        Upload Image
-                      </span>
-                    </button>
-                  )}
-                </div>
+                <FieldLabel required>Bottles</FieldLabel>
                 <input
-                  type="file"
-                  hidden
-                  ref={fileInputRef}
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  multiple
+                  type="number"
+                  step="0.01"
+                  className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm outline-none focus:border-[#FDB8D7]"
+                  value={form.bottles}
+                  onChange={(e) => upd({ bottles: e.target.value })}
+                  required
                 />
               </div>
-
-              {/* Calculations Area */}
-              <div className="pt-6 border-t border-[#1f1f1f]">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-[#161616] rounded-2xl border border-[#222]">
-                    <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">
-                      Total Revenue
-                    </p>
-                    <p className="text-xl font-mono font-bold tracking-tighter">
-                      {fmt(computed.totalRevenue)}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-[#FDB8D708] rounded-2xl border border-[#FDB8D720]">
-                    <p
-                      className="text-[10px] font-bold uppercase mb-1"
-                      style={{ color: B }}
-                    >
-                      Your Commission
-                    </p>
-                    <p
-                      className="text-xl font-mono font-bold tracking-tighter"
-                      style={{ color: B }}
-                    >
-                      {fmt(computed.sellerCommission)}
-                    </p>
-                    {parsePound(form.deductions) > 0 && (
-                      <p className="text-[9px] text-red-400 font-bold mt-1 uppercase">
-                        After -{fmt(computed.deductionFromComm)} Deduction
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <div>
+                <FieldLabel>Card (£)</FieldLabel>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm outline-none"
+                  value={form.card}
+                  onChange={(e) => upd({ card: e.target.value })}
+                />
+              </div>
+              <div>
+                <FieldLabel>Cash (£)</FieldLabel>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm outline-none"
+                  value={form.cash}
+                  onChange={(e) => upd({ cash: e.target.value })}
+                />
               </div>
             </div>
+          </div>
 
-            {/* Footer */}
-            <div className="px-8 py-6 bg-[#0f0f0f] border-t border-[#1a1a1a]">
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{
-                  background: submitting
-                    ? "#333"
-                    : `linear-gradient(135deg, ${B}, #e89fbe)`,
-                  color: "#1a0a10",
-                }}
-                className="w-full py-4 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl disabled:opacity-50 transition-all hover:scale-[1.01] active:scale-95"
-              >
-                {submitting
-                  ? "Processing Submission..."
-                  : "Confirm & Submit Shift"}
-              </button>
+          {/* Logic Blocks */}
+          <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f] space-y-6">
+            <div>
+              <FieldLabel required>Did you pay the bar directly?</FieldLabel>
+              <div className="flex gap-4">
+                {(["YES", "NO"] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => upd({ paidBarDirectly: opt })}
+                    className={`flex-1 py-4 rounded-2xl font-black text-xs transition-all ${form.paidBarDirectly === opt ? "bg-white text-black" : "bg-black text-gray-500 border border-[#222]"}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              {form.paidBarDirectly === "YES" && (
+                <p className="text-[10px] text-red-400 mt-4 font-bold italic">
+                  Note: £{computed.barEarnings.toFixed(2)} will be deducted from
+                  your commission.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <FieldLabel required>
+                Did agency send money to help pay bar?
+              </FieldLabel>
+              <div className="flex gap-4">
+                {(["YES", "NO"] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => upd({ agencySentMoney: opt })}
+                    className={`flex-1 py-4 rounded-2xl font-black text-xs transition-all ${form.agencySentMoney === opt ? "bg-white text-black" : "bg-black text-gray-500 border border-[#222]"}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              {form.agencySentMoney === "YES" && (
+                <div className="mt-4">
+                  <FieldLabel required>Amount Sent (£)</FieldLabel>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full bg-black border border-[#222] rounded-2xl px-6 py-4 text-sm outline-none focus:border-[#FDB8D7]"
+                    value={form.agencyAmount}
+                    onChange={(e) => upd({ agencyAmount: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Image Uploader */}
+          <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f]">
+            <FieldLabel>Upload Receipts</FieldLabel>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-[#222] rounded-[2rem] p-8 text-center cursor-pointer hover:border-[#FDB8D7] transition-all group"
+            >
+              <Upload className="w-8 h-8 mx-auto mb-2 opacity-20 group-hover:opacity-100 transition-opacity" />
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                Click to upload images
+              </p>
+              <input
+                type="file"
+                ref={fileInputRef}
+                hidden
+                multiple
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+            </div>
+            {form.images.length > 0 && (
+              <div className="flex gap-3 mt-4 overflow-x-auto pb-4 no-scrollbar">
+                {form.images.map((img, i) => (
+                  <div
+                    key={i}
+                    className="relative w-20 h-20 flex-shrink-0 bg-[#161616] rounded-2xl overflow-hidden border border-[#222]"
+                  >
+                    <Image
+                      src={img}
+                      alt={`Receipt ${i}`}
+                      fill
+                      unoptimized
+                      className="object-cover opacity-60"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        upd({
+                          images: form.images.filter((_, idx) => idx !== i),
+                        })
+                      }
+                      className="absolute top-1 right-1 bg-black rounded-full p-1.5 z-10 border border-white/10"
+                    >
+                      <X className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Totals */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f]">
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
+                Total Revenue
+              </p>
+              <p className="text-3xl font-black tracking-tighter">
+                £{computed.totalRevenue.toFixed(2)}
+              </p>
+            </div>
+            <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#FDB8D720] border-dashed">
+              <p
+                className="text-[10px] font-black uppercase tracking-widest mb-1"
+                style={{ color: B }}
+              >
+                Your Commission
+              </p>
+              <p
+                className="text-3xl font-black tracking-tighter"
+                style={{ color: B }}
+              >
+                £{computed.sellerCommission.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{ backgroundColor: B }}
+            className="w-full py-6 rounded-[2rem] text-black font-black uppercase tracking-[0.2em] text-xs shadow-xl hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50"
+          >
+            {submitting ? "Sending..." : "Submit Shift Data"}
+          </button>
         </form>
       </div>
     </div>
