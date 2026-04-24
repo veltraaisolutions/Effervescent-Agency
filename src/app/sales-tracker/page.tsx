@@ -333,9 +333,9 @@ export default function SalesTrackerPage() {
             </div>
           </div>
 
-          {/* SECTION 5: RECEIPTS */}
+          {/* SECTION 5: Images */}
           <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f] space-y-6">
-            <FieldLabel>Upload Receipts (Max 2)</FieldLabel>
+            <FieldLabel>Upload Images</FieldLabel>
             <div
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-[#222] rounded-[2rem] p-8 text-center cursor-pointer hover:border-[#FDB8D7] transition-all group"
