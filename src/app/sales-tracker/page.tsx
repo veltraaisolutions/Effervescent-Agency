@@ -4,7 +4,7 @@ import { useState, useRef, ChangeEvent, FormEvent } from "react";
 import Image from "next/image";
 import { ChevronDown, Upload, X, CheckCircle2 } from "lucide-react";
 
-const B = "#FDB8D7";
+const PINK = "#FDB8D7";
 const WEBHOOK_URL = "https://n8n.veltraai.net/webhook/sales-tracker";
 
 const VENUES = [
@@ -50,7 +50,7 @@ interface SalesForm {
   name: string;
   bottles: string;
   cash: string;
-  barAmount: string; // New field for "Amount paid or owed to the bar"
+  barAmount: string;
   paidBarDirectly: "YES" | "NO";
   agencySentMoney: "YES" | "NO";
   agencyAmount: string;
@@ -82,7 +82,7 @@ function FieldLabel({
       {children}{" "}
       {required && (
         <span
-          style={{ color: B }}
+          style={{ color: PINK }}
           className="ml-1"
         >
           *
@@ -158,7 +158,7 @@ export default function SalesTrackerPage() {
               setSubmitted(false);
               setForm(INITIAL);
             }}
-            style={{ backgroundColor: B }}
+            style={{ backgroundColor: PINK }}
             className="px-8 py-4 rounded-2xl text-black font-black uppercase text-xs"
           >
             New Entry
@@ -190,6 +190,7 @@ export default function SalesTrackerPage() {
                 <FieldLabel required>Date</FieldLabel>
                 <input
                   type="date"
+                  style={{ colorScheme: "dark" }}
                   className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm focus:border-[#FDB8D7] outline-none"
                   value={form.date}
                   onChange={(e) => upd({ date: e.target.value })}
@@ -256,7 +257,16 @@ export default function SalesTrackerPage() {
                       key={opt}
                       type="button"
                       onClick={() => upd({ paidBarDirectly: opt })}
-                      className={`flex-1 py-4 rounded-2xl font-black text-xs transition-all ${form.paidBarDirectly === opt ? "bg-white text-black" : "bg-black text-gray-500 border border-[#222]"}`}
+                      style={
+                        form.paidBarDirectly === opt
+                          ? { backgroundColor: PINK }
+                          : {}
+                      }
+                      className={`flex-1 py-4 rounded-2xl font-black text-xs transition-all ${
+                        form.paidBarDirectly === opt
+                          ? "text-black"
+                          : "bg-black text-gray-500 border border-[#222]"
+                      }`}
                     >
                       {opt}
                     </button>
@@ -282,7 +292,16 @@ export default function SalesTrackerPage() {
                       agencyAmount: opt === "NO" ? "0" : form.agencyAmount,
                     })
                   }
-                  className={`flex-1 py-4 rounded-2xl font-black text-xs transition-all ${form.agencySentMoney === opt ? "bg-white text-black" : "bg-black text-gray-500 border border-[#222]"}`}
+                  style={
+                    form.agencySentMoney === opt
+                      ? { backgroundColor: PINK }
+                      : {}
+                  }
+                  className={`flex-1 py-4 rounded-2xl font-black text-xs transition-all ${
+                    form.agencySentMoney === opt
+                      ? "text-black"
+                      : "bg-black text-gray-500 border border-[#222]"
+                  }`}
                 >
                   {opt}
                 </button>
@@ -385,7 +404,7 @@ export default function SalesTrackerPage() {
             <button
               type="submit"
               disabled={submitting}
-              style={{ backgroundColor: B }}
+              style={{ backgroundColor: PINK }}
               className="w-full py-6 rounded-3xl text-black font-black uppercase tracking-[0.2em] text-xs shadow-xl transition-all disabled:opacity-50"
             >
               {submitting ? "Sending..." : "Submit Shift Data"}
