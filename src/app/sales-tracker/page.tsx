@@ -2,13 +2,7 @@
 
 import { useState, useRef, useMemo, ChangeEvent, FormEvent } from "react";
 import Image from "next/image";
-import {
-  ChevronDown,
-  AlertCircle,
-  Upload,
-  X,
-  CheckCircle2,
-} from "lucide-react";
+import { ChevronDown, Upload, X, CheckCircle2 } from "lucide-react";
 
 const B = "#FDB8D7";
 const WEBHOOK_URL = "https://n8n.veltraai.net/webhook/sales-tracker";
@@ -55,14 +49,12 @@ const VENUES = Object.keys(VENUE_PRICES)
   .filter((v) => v !== "DEFAULT")
   .sort();
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface SalesForm {
   date: string;
   venue: string;
   name: string;
   email: string;
   bottles: string;
-  card: string;
   cash: string;
   paidBarDirectly: "YES" | "NO" | "";
   agencySentMoney: "YES" | "NO" | "";
@@ -76,7 +68,6 @@ const INITIAL: SalesForm = {
   name: "",
   email: "",
   bottles: "",
-  card: "",
   cash: "",
   paidBarDirectly: "",
   agencySentMoney: "",
@@ -116,22 +107,23 @@ export default function SalesTrackerPage() {
     setForm((f) => ({ ...f, ...patch }));
 
   const computed = useMemo(() => {
-    const card = parseFloat(form.card) || 0;
     const cash = parseFloat(form.cash) || 0;
     const bottles = parseFloat(form.bottles) || 0;
     const agencyCash = parseFloat(form.agencyAmount) || 0;
 
     const pricePerBottle = VENUE_PRICES[form.venue] || VENUE_PRICES["DEFAULT"];
     const barEarnings = bottles * pricePerBottle;
-    const totalRevenue = card + cash;
-    const rawCommission = totalRevenue * 0.25;
+
+    // Note: Commission calculation is kept for the background payload
+    // but hidden from the UI as per client request.
+    const rawCommission = cash * 0.25;
 
     let deductions = 0;
     if (form.paidBarDirectly === "YES") deductions += barEarnings;
     if (form.agencySentMoney === "YES") deductions += agencyCash;
 
     return {
-      totalRevenue,
+      totalRevenue: cash,
       sellerCommission: Math.max(0, rawCommission - deductions),
       barEarnings,
       deductions,
@@ -160,7 +152,6 @@ export default function SalesTrackerPage() {
         body: JSON.stringify({ ...form, ...computed }),
       });
       if (res.ok) setSubmitted(true);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       alert("Submission failed.");
     } finally {
@@ -204,7 +195,6 @@ export default function SalesTrackerPage() {
           onSubmit={handleSubmit}
           className="space-y-6"
         >
-          {/* Main Sales Info */}
           <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f] space-y-6">
             <div className="grid grid-cols-1 gap-6">
               <div>
@@ -250,9 +240,9 @@ export default function SalesTrackerPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <FieldLabel required>Bottles</FieldLabel>
+                <FieldLabel required>Exact units sold e.g. 3.5</FieldLabel>
                 <input
                   type="number"
                   step="0.01"
@@ -263,32 +253,27 @@ export default function SalesTrackerPage() {
                 />
               </div>
               <div>
-                <FieldLabel>Card (£)</FieldLabel>
+                <FieldLabel required>Physical Cash Collected</FieldLabel>
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm outline-none"
-                  value={form.card}
-                  onChange={(e) => upd({ card: e.target.value })}
-                />
-              </div>
-              <div>
-                <FieldLabel>Cash (£)</FieldLabel>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm outline-none"
+                  placeholder="Inc. tips & bar payments"
+                  className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm outline-none focus:border-[#FDB8D7]"
                   value={form.cash}
                   onChange={(e) => upd({ cash: e.target.value })}
+                  required
                 />
+                <p className="text-[9px] text-gray-500 mt-2 italic px-2">
+                  Total physical cash taken, including tips and any given to
+                  bar.
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Logic Blocks */}
           <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f] space-y-6">
             <div>
-              <FieldLabel required>Did you pay the bar directly?</FieldLabel>
+              <FieldLabel required>Amount paid or owed to the bar</FieldLabel>
               <div className="flex gap-4">
                 {(["YES", "NO"] as const).map((opt) => (
                   <button
@@ -301,17 +286,11 @@ export default function SalesTrackerPage() {
                   </button>
                 ))}
               </div>
-              {form.paidBarDirectly === "YES" && (
-                <p className="text-[10px] text-red-400 mt-4 font-bold italic">
-                  Note: £{computed.barEarnings.toFixed(2)} will be deducted from
-                  your commission.
-                </p>
-              )}
             </div>
 
             <div>
               <FieldLabel required>
-                Did agency send money to help pay bar?
+                Did the agency send money to help pay for the bottles?
               </FieldLabel>
               <div className="flex gap-4">
                 {(["YES", "NO"] as const).map((opt) => (
@@ -327,7 +306,7 @@ export default function SalesTrackerPage() {
               </div>
               {form.agencySentMoney === "YES" && (
                 <div className="mt-4">
-                  <FieldLabel required>Amount Sent (£)</FieldLabel>
+                  <FieldLabel required>How much exactly? (£)</FieldLabel>
                   <input
                     type="number"
                     step="0.01"
@@ -341,7 +320,6 @@ export default function SalesTrackerPage() {
             </div>
           </div>
 
-          {/* Image Uploader */}
           <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f]">
             <FieldLabel>Upload Receipts</FieldLabel>
             <div
@@ -390,32 +368,6 @@ export default function SalesTrackerPage() {
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Totals */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f]">
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                Total Revenue
-              </p>
-              <p className="text-3xl font-black tracking-tighter">
-                £{computed.totalRevenue.toFixed(2)}
-              </p>
-            </div>
-            <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#FDB8D720] border-dashed">
-              <p
-                className="text-[10px] font-black uppercase tracking-widest mb-1"
-                style={{ color: B }}
-              >
-                Your Commission
-              </p>
-              <p
-                className="text-3xl font-black tracking-tighter"
-                style={{ color: B }}
-              >
-                £{computed.sellerCommission.toFixed(2)}
-              </p>
-            </div>
           </div>
 
           <button
