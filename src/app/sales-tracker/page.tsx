@@ -7,7 +7,6 @@ import { ChevronDown, Upload, X, CheckCircle2 } from "lucide-react";
 const B = "#FDB8D7";
 const WEBHOOK_URL = "https://n8n.veltraai.net/webhook/sales-tracker";
 
-// List remains for selection, but calculations are removed from the payload
 const VENUES = [
   "2Funky",
   "Binks Yard",
@@ -51,6 +50,7 @@ interface SalesForm {
   name: string;
   bottles: string;
   cash: string;
+  barAmount: string; // New field for "Amount paid or owed to the bar"
   paidBarDirectly: "YES" | "NO";
   agencySentMoney: "YES" | "NO";
   agencyAmount: string;
@@ -63,9 +63,10 @@ const INITIAL: SalesForm = {
   name: "",
   bottles: "",
   cash: "",
+  barAmount: "",
   paidBarDirectly: "NO",
   agencySentMoney: "NO",
-  agencyAmount: "0",
+  agencyAmount: "",
   images: [],
 };
 
@@ -102,10 +103,11 @@ export default function SalesTrackerPage() {
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    // Optional: Limit to 2 images as discussed
     if (form.images.length + files.length > 2) {
       alert("Max 2 images allowed");
+      e.target.value = "";
       return;
     }
 
@@ -117,19 +119,19 @@ export default function SalesTrackerPage() {
       });
     });
 
-    // Wait for ALL images to finish reading, then update state ONCE
     Promise.all(newImagesPromises).then((base64Strings) => {
       setForm((prev) => ({
         ...prev,
         images: [...prev.images, ...base64Strings],
       }));
+      if (fileInputRef.current) fileInputRef.current.value = "";
     });
   };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      // Sending RAW data only. Google Sheet formulas handle the math.
       const res = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -181,7 +183,7 @@ export default function SalesTrackerPage() {
           onSubmit={handleSubmit}
           className="space-y-6"
         >
-          {/* SECTION 1: IDENTITY & DATE */}
+          {/* SECTION 1: IDENTITY */}
           <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f] space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -220,7 +222,7 @@ export default function SalesTrackerPage() {
             <div>
               <FieldLabel required>Full Name</FieldLabel>
               <input
-                className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm focus:border-[#FDB8D7] outline-none transition-all"
+                className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm focus:border-[#FDB8D7] outline-none"
                 value={form.name}
                 placeholder="Enter your name"
                 onChange={(e) => upd({ name: e.target.value })}
@@ -229,28 +231,80 @@ export default function SalesTrackerPage() {
             </div>
           </div>
 
-          {/* SECTION 2: BAR PAYMENT (Moved up as requested) */}
+          {/* SECTION 2: BAR PAYMENT LOGIC */}
           <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f] space-y-6">
-            <div>
-              <FieldLabel required>
-                Did you make any payment to the bar?
-              </FieldLabel>
-              <div className="flex gap-4">
-                {(["YES", "NO"] as const).map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => upd({ paidBarDirectly: opt })}
-                    className={`flex-1 py-4 rounded-2xl font-black text-xs transition-all ${form.paidBarDirectly === opt ? "bg-white text-black" : "bg-black text-gray-500 border border-[#222]"}`}
-                  >
-                    {opt}
-                  </button>
-                ))}
+            <div className="grid grid-cols-1 gap-6">
+              <div>
+                <FieldLabel required>Amount paid or owed to the bar</FieldLabel>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="£0.00"
+                  className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm outline-none focus:border-[#FDB8D7]"
+                  value={form.barAmount}
+                  onChange={(e) => upd({ barAmount: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <FieldLabel required>
+                  Did you make any payment to the bar?
+                </FieldLabel>
+                <div className="flex gap-4">
+                  {(["YES", "NO"] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => upd({ paidBarDirectly: opt })}
+                      className={`flex-1 py-4 rounded-2xl font-black text-xs transition-all ${form.paidBarDirectly === opt ? "bg-white text-black" : "bg-black text-gray-500 border border-[#222]"}`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* SECTION 3: SALES DATA */}
+          {/* SECTION 3: AGENCY LOGIC */}
+          <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f] space-y-6">
+            <FieldLabel required>
+              Did the agency send you money to help pay the bar?
+            </FieldLabel>
+            <div className="flex gap-4">
+              {(["YES", "NO"] as const).map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() =>
+                    upd({
+                      agencySentMoney: opt,
+                      agencyAmount: opt === "NO" ? "0" : form.agencyAmount,
+                    })
+                  }
+                  className={`flex-1 py-4 rounded-2xl font-black text-xs transition-all ${form.agencySentMoney === opt ? "bg-white text-black" : "bg-black text-gray-500 border border-[#222]"}`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+            {form.agencySentMoney === "YES" && (
+              <div className="pt-2 animate-in fade-in slide-in-from-top-2">
+                <FieldLabel required>How much did the agency send?</FieldLabel>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="£0.00"
+                  className="w-full bg-[#161616] border border-[#222] rounded-2xl px-6 py-4 text-sm outline-none focus:border-[#FDB8D7]"
+                  value={form.agencyAmount}
+                  onChange={(e) => upd({ agencyAmount: e.target.value })}
+                  required
+                />
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 4: SALES DATA */}
           <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f] space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -275,17 +329,13 @@ export default function SalesTrackerPage() {
                   onChange={(e) => upd({ cash: e.target.value })}
                   required
                 />
-                <p className="text-[14px] text-gray-400 mt-2 italic px-1 font-medium leading-relaxed">
-                  Total physical cash taken, including tips and any given to
-                  bar.
-                </p>
               </div>
             </div>
           </div>
 
-          {/* SECTION 4: RECEIPTS */}
+          {/* SECTION 5: RECEIPTS */}
           <div className="bg-[#111] p-8 rounded-[2.5rem] border border-[#1f1f1f] space-y-6">
-            <FieldLabel>Upload Receipts</FieldLabel>
+            <FieldLabel>Upload Receipts (Max 2)</FieldLabel>
             <div
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-[#222] rounded-[2rem] p-8 text-center cursor-pointer hover:border-[#FDB8D7] transition-all group"
