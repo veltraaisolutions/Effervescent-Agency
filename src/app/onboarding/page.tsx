@@ -90,6 +90,9 @@ const SHOW_NEXT_MONTH = CD >= 16;
 
 const LOCATIONS = [
   "Nottingham",
+  "cardiff",
+  "Marbella",
+  "Dubai",
   "Derby",
   "Newark",
   "Mansfield",
@@ -437,9 +440,9 @@ function OnboardingForm() {
               OFFER & NEXT STEPS
             </h1>
             <p className="text-gray-300 leading-relaxed">
-              Thank you for attending a trial shift with us this weekend - we
-              were really pleased and would like to offer you the opportunity to
-              work with us.
+              Thank you for attending a trial shift with us. we were really
+              pleased and would like to offer you the opportunity to work with
+              us.
             </p>
           </header>
 
@@ -463,6 +466,9 @@ function OnboardingForm() {
                 <li>• 25ml Jägerbomb cups (at least 100)</li>
                 <li>• Shot tubes with rack (approved suppliers)</li>
                 <li>• Tray (recommended)</li>
+                <li>
+                  • It Is Required To Buy The Equipment Before Your First Shift
+                </li>
               </ul>
               <a
                 href="https://effervescent-agency.sumupstore.com/product/shot-seller-starter-kit"
