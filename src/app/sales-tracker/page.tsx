@@ -178,7 +178,10 @@ export default function SalesTrackerPage() {
     <div className="min-h-screen bg-black text-white p-6 font-sans">
       <div className="max-w-xl mx-auto py-12 space-y-8">
         <header className="text-center">
-          <h1 className="text-4xl font-black italic tracking-tighter uppercase">
+          <h1
+            className="text-4xl font-black italic tracking-tighter uppercase"
+            style={{ color: "rgb(253, 184, 215)" }}
+          >
             Sales Breakdown
           </h1>
         </header>
