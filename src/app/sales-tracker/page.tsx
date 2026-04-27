@@ -8,8 +8,14 @@ const PINK = "#FDB8D7";
 const WEBHOOK_URL = "https://n8n.veltraai.net/webhook/sales-tracker";
 
 const VENUES = [
-  "2Funky",
   "Boxpark Liverpool",
+  "Tibu",
+  "Portside",
+  "Zanettis",
+  "Babilonia",
+  "Kova Beach",
+  "Linekers Marbella",
+  "2Funky",
   "Binks Yard",
   "Bounty",
   "Cavendish",
@@ -172,9 +178,6 @@ export default function SalesTrackerPage() {
     <div className="min-h-screen bg-black text-white p-6 font-sans">
       <div className="max-w-xl mx-auto py-12 space-y-8">
         <header className="text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 mb-2">
-            Veltra AI Solutions
-          </p>
           <h1 className="text-4xl font-black italic tracking-tighter uppercase">
             Sales Tracker
           </h1>
