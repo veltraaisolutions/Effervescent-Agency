@@ -29,6 +29,7 @@ import {
   NotebookPen,
   CheckSquare,
   Square,
+  ExternalLink,
 } from "lucide-react";
 import { Candidate } from "./types";
 import {
@@ -916,6 +917,31 @@ function CandidateModal({
                   </a>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Training Certificate */}
+          {candidate.certificate_url && (
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-[#FDB8D7] uppercase tracking-widest border-b border-[#1f1f1f] pb-2">
+                Training Certificate
+              </h4>
+              <a
+                href={candidate.certificate_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-4 rounded-xl bg-pink-500/5 border border-pink-500/20 hover:bg-pink-500/10 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+                    Click to view document
+                  </p>
+                </div>
+                <ExternalLink className="w-4 h-4 text-gray-600" />
+              </a>
             </div>
           )}
 

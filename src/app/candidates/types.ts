@@ -1,4 +1,5 @@
 export interface Candidate {
+  certificate_url: string | undefined;
   id: string;
   created_at: string;
   full_name: string;
