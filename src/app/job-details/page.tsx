@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Smartphone,
   PlayCircle,
@@ -7,11 +8,61 @@ import {
   Shirt,
   AlertTriangle,
   ExternalLink,
+  Upload,
+  Loader2,
+  CheckCircle,
 } from "lucide-react";
 
 const B = "#FDB8D7";
 
 export default function JobDetailsPage() {
+  const [email, setEmail] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [status, setStatus] = useState<
+    "idle" | "uploading" | "success" | "error"
+  >("idle");
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !file) {
+      alert("Please provide both your email and the certificate file.");
+      return;
+    }
+
+    setStatus("uploading");
+
+    try {
+      const formData = new FormData();
+      formData.append("email", email);
+      formData.append("certificate", file);
+
+      const response = await fetch(
+        "https://n8n.veltraai.net/webhook/certificate-uploaded-on-job-details-page",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+
+      if (response.ok) {
+        setStatus("success");
+        alert("Submitted successfully!");
+        setEmail("");
+        setFile(null);
+      } else {
+        throw new Error("Failed to upload");
+      }
+    } catch (error) {
+      console.error(error);
+      setStatus("error");
+      alert(
+        "There was an error submitting your certificate. Please try again.",
+      );
+    } finally {
+      setTimeout(() => setStatus("idle"), 3000);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white py-12 px-6">
       <div className="max-w-2xl mx-auto">
@@ -121,8 +172,68 @@ export default function JobDetailsPage() {
                   Watch: How to enrol (Demo Video)
                 </a>
               </div>
+
+              {/* Upload Certificate Form */}
+              <form
+                onSubmit={handleUpload}
+                className="mt-6 p-5 bg-[#0d0d0d] border border-dashed border-[#2a2a2a] rounded-2xl space-y-4"
+              >
+                <p className="text-white font-bold text-xs uppercase tracking-wider">
+                  Upload Certificate
+                </p>
+
+                <input
+                  type="email"
+                  placeholder="Your Email Address"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-[#161616] border border-[#2a2a2a] rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-[#FDB8D7]/50 transition-colors"
+                />
+
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="cert-upload"
+                    required
+                    accept=".pdf,image/*"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="cert-upload"
+                    className="flex items-center justify-center gap-2 w-full p-3 bg-white/5 border border-[#2a2a2a] rounded-xl cursor-pointer hover:bg-white/10 transition-all text-xs font-medium"
+                  >
+                    {file ? (
+                      <span className="text-white truncate">{file.name}</span>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        <span>Select Certificate (PDF/Image)</span>
+                      </>
+                    )}
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={status === "uploading"}
+                  className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                  style={{ backgroundColor: B, color: "#000" }}
+                >
+                  {status === "uploading" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : status === "success" ? (
+                    <CheckCircle className="w-4 h-4" />
+                  ) : null}
+                  {status === "uploading"
+                    ? "Uploading..."
+                    : "Submit Certificate"}
+                </button>
+              </form>
+
               <p className="text-center text-xs font-medium">
-                Once completed, email certificate to:{" "}
+                Alternatively, email certificate to:{" "}
                 <span style={{ color: B }}>hello@effervescent.agency</span>
               </p>
             </div>
