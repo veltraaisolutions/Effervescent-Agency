@@ -179,7 +179,7 @@ export default function SalesTrackerPage() {
       <div className="max-w-xl mx-auto py-12 space-y-8">
         <header className="text-center">
           <h1 className="text-4xl font-black italic tracking-tighter uppercase">
-            Sales Tracker
+            Sales Breakdown
           </h1>
         </header>
 
