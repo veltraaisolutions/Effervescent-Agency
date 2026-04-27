@@ -9,6 +9,7 @@ const WEBHOOK_URL = "https://n8n.veltraai.net/webhook/sales-tracker";
 
 const VENUES = [
   "2Funky",
+  "Boxpark Liverpool",
   "Binks Yard",
   "Bounty",
   "Cavendish",
