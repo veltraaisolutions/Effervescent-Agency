@@ -1550,16 +1550,7 @@ export function CandidatesDashboard({
     .filter((c) => {
       const q = search.toLowerCase();
       if (statusFilter === "invite_sent") {
-        if (!c.wa_sent_at) return false;
-        if (
-          c.status === "rejected" ||
-          c.status === "pending" ||
-          c.status === "trial_offered" ||
-          c.status === "onboarding" ||
-          c.status === "on-boarded" ||
-          c.status === "interview booked"
-        )
-          return false;
+        if (c.status !== "approved") return false;
       } else if (statusFilter === "trial_offered_filter") {
         if (c.status !== "trial_offered") return false;
       } else if (statusFilter === "onboarded_filter") {
@@ -1595,7 +1586,7 @@ export function CandidatesDashboard({
   const counts = {
     total: candidates.length,
     pending: candidates.filter((c) => c.status === "pending").length,
-    inviteSent: candidates.filter((c) => c.wa_sent_at !== null).length,
+    inviteSent: candidates.filter((c) => c.status === "approved").length,
     trialOffered: candidates.filter((c) => c.status === "trial_offered").length,
     onboarding: candidates.filter((c) => c.status === "onboarding").length,
     onboarded: candidates.filter((c) => c.status === "on-boarded").length,
