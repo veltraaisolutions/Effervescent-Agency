@@ -920,28 +920,61 @@ function CandidateModal({
             </div>
           )}
 
-          {/* Training Certificate */}
           {candidate.certificate_url && (
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-[#FDB8D7] uppercase tracking-widest border-b border-[#1f1f1f] pb-2">
                 Training Certificate
               </h4>
-              <a
-                href={candidate.certificate_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-4 rounded-xl bg-pink-500/5 border border-pink-500/20 hover:bg-pink-500/10 transition-all group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
-                  <Award className="w-5 h-5" />
+
+              {/* PDF certificate */}
+              {candidate.certificate_url.toLowerCase().includes(".pdf") && (
+                <div className="rounded-xl overflow-hidden border border-pink-500/20">
+                  <Link
+                    href={candidate.certificate_url
+                      .replace("/image/upload/", "/raw/upload/")
+                      .replace("/upload/", "/upload/fl_attachment/")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-4 bg-pink-500/5 hover:bg-pink-500/10 transition-all group"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
+                      <Award className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-white">Training Certificate</p>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+                        Click to open PDF
+                      </p>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-gray-600" />
+                  </Link>
                 </div>
-                <div className="flex-1">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">
-                    Click to view document
-                  </p>
-                </div>
-                <ExternalLink className="w-4 h-4 text-gray-600" />
-              </a>
+              )}
+
+              {/* Image certificate */}
+              {!candidate.certificate_url.toLowerCase().includes(".pdf") && (
+                <Link
+                  href={candidate.certificate_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block rounded-xl overflow-hidden border border-pink-500/20 hover:border-pink-500/50 transition-all group"
+                >
+                  <div className="relative w-full h-48">
+                    <Image
+                      src={candidate.certificate_url}
+                      alt="Training Certificate"
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 p-3 bg-pink-500/5">
+                    <ExternalLink className="w-4 h-4 text-gray-600" />
+                    <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+                      View full image
+                    </span>
+                  </div>
+                </Link>
+              )}
             </div>
           )}
 
