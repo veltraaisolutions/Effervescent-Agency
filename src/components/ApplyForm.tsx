@@ -1159,7 +1159,7 @@ export default function ApplyPage() {
                                 ),
                               })
                             }
-                            className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-1.5 right-1.5 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -1227,7 +1227,7 @@ export default function ApplyPage() {
                       <button
                         type="button"
                         onClick={() => upd({ passportId: null })}
-                        className="text-gray-600 hover:text-red-400 transition-colors p-1"
+                        className="text-red-400 p-2"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1469,5 +1469,5 @@ export default function ApplyPage() {
         </p>
       </div>
     </div>
-  );  
+  );
 }
