@@ -817,7 +817,7 @@ export default function ApplyPage() {
             style={{ boxShadow: `0 0 0 1px ${B}30` }}
           >
             <Image
-              src="/logo2.jpeg"
+              src="/logo.jpeg"
               alt="Effervescent Agency"
               width={180}
               height={40}
