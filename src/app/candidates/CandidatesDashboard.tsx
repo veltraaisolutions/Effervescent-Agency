@@ -930,9 +930,10 @@ function CandidateModal({
               {candidate.certificate_url.toLowerCase().includes(".pdf") && (
                 <div className="rounded-xl overflow-hidden border border-pink-500/20">
                   <Link
-                    href={candidate.certificate_url
-                      .replace("/image/upload/", "/raw/upload/")
-                      .replace("/upload/", "/upload/fl_attachment/")}
+                    href={candidate.certificate_url.replace(
+                      "/image/upload/",
+                      "/raw/upload/",
+                    )}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 p-4 bg-pink-500/5 hover:bg-pink-500/10 transition-all group"
