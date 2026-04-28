@@ -966,6 +966,7 @@ function CandidateModal({
                       alt="Training Certificate"
                       fill
                       className="object-cover group-hover:scale-105 transition-transform"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                   </div>
                   <div className="flex items-center gap-2 p-3 bg-pink-500/5">
