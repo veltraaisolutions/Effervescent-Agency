@@ -99,9 +99,6 @@ const ALLOWED_PHOTO_TYPES = [
 ];
 const ALLOWED_ID_TYPES = ["image/jpeg", "image/jpg", "image/png"];
 
-// Brand colour — every accent in the form uses this
-const B = "#FDB8D7";
-
 const SLIDE_LABELS = [
   "Personal",
   "Location",
@@ -210,11 +207,8 @@ function isAtLeast18(dob: string): boolean {
  *   "971501234567"      → "+971501234567"  (forgot the +)
  */
 function normalizePhone(raw: string): string {
-  // Step 1: trim leading/trailing whitespace
   let v = raw.trim();
-  // Step 2: strip all spaces, dashes, dots, parentheses, hyphens
   v = v.replace(/[\s\-().]/g, "");
-  // Step 3: if it's purely digits (user forgot the +), prepend +
   if (!v.startsWith("+") && /^\d+$/.test(v)) {
     v = "+" + v;
   }
@@ -238,25 +232,6 @@ function toBase64(file: File): Promise<string> {
   });
 }
 
-// ─── Shared focus handlers (brand ring on dark inputs) ────────────────────────
-
-const onFocusBrand = (
-  e: React.FocusEvent<
-    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-  >,
-) => {
-  e.currentTarget.style.boxShadow = `0 0 0 2px ${B}55`;
-  e.currentTarget.style.borderColor = B;
-};
-const onBlurBrand = (
-  e: React.FocusEvent<
-    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-  >,
-) => {
-  e.currentTarget.style.boxShadow = "";
-  e.currentTarget.style.borderColor = "";
-};
-
 // ─── UI Primitives ────────────────────────────────────────────────────────────
 
 function FieldLabel({
@@ -267,16 +242,9 @@ function FieldLabel({
   required?: boolean;
 }) {
   return (
-    <label className="block text-sm font-semibold text-gray-300 mb-1.5">
+    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
       {children}
-      {required && (
-        <span
-          style={{ color: B }}
-          className="ml-0.5"
-        >
-          *
-        </span>
-      )}
+      {required && <span className="ml-0.5 text-pink-500">*</span>}
     </label>
   );
 }
@@ -284,7 +252,7 @@ function FieldLabel({
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1">
+    <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
       <AlertCircle className="w-3 h-3 flex-shrink-0" />
       {message}
     </p>
@@ -313,15 +281,11 @@ function TextInput({
       placeholder={placeholder}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
-      onBlur={(e) => {
-        onBlurBrand(e);
-        onBlur?.();
-      }}
-      style={{ colorScheme: "dark" }}
-      className="w-full px-3 py-2.5 border border-[#2a2a2a] rounded-xl text-sm
-        bg-[#1a1a1a] text-white placeholder:text-gray-600
-        focus:outline-none disabled:opacity-50 transition-all"
-      onFocus={onFocusBrand}
+      onBlur={onBlur}
+      className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm
+        bg-white text-gray-900 placeholder:text-gray-400
+        focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400
+        disabled:opacity-50 transition-all"
     />
   );
 }
@@ -343,11 +307,10 @@ function TextareaInput({
       rows={rows}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2.5 border border-[#2a2a2a] rounded-xl text-sm
-        bg-[#1a1a1a] text-white placeholder:text-gray-600
-        focus:outline-none resize-none transition-all"
-      onFocus={onFocusBrand}
-      onBlur={onBlurBrand}
+      className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm
+        bg-white text-gray-900 placeholder:text-gray-400
+        focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400
+        resize-none transition-all"
     />
   );
 }
@@ -368,15 +331,13 @@ function SelectInput({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ colorScheme: "dark" }}
-        className="w-full appearance-none px-3 py-2.5 border border-[#2a2a2a] rounded-xl text-sm
-          bg-[#1a1a1a] text-white focus:outline-none transition-all"
-        onFocus={onFocusBrand}
-        onBlur={onBlurBrand}
+        className="w-full appearance-none px-3 py-2.5 border border-gray-300 rounded-xl text-sm
+          bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400
+          focus:border-pink-400 transition-all"
       >
         <option
           value=""
-          className="text-gray-500"
+          className="text-gray-400"
         >
           {placeholder}
         </option>
@@ -384,13 +345,13 @@ function SelectInput({
           <option
             key={opt}
             value={opt}
-            className="text-white bg-[#1a1a1a]"
+            className="text-gray-900 bg-white"
           >
             {opt}
           </option>
         ))}
       </select>
-      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
     </div>
   );
 }
@@ -409,15 +370,10 @@ function YesNoToggle({
           key={opt}
           type="button"
           onClick={() => onChange(opt)}
-          style={
-            value === opt
-              ? { backgroundColor: B, borderColor: B, color: "#1a0a10" }
-              : {}
-          }
           className={`px-6 py-2 rounded-xl text-sm font-semibold border transition-all ${
             value === opt
-              ? "shadow-sm"
-              : "bg-[#1a1a1a] text-gray-400 border-[#2a2a2a] hover:border-[#FDB8D7]/60 hover:text-gray-200"
+              ? "bg-pink-500 border-pink-500 text-white shadow-sm"
+              : "bg-white text-gray-600 border-gray-300 hover:border-pink-400 hover:text-pink-500"
           }`}
         >
           {opt === "yes" ? "Yes" : "No"}
@@ -443,26 +399,19 @@ function RadioGroup({
           key={opt}
           type="button"
           onClick={() => onChange(opt)}
-          style={
-            value === opt ? { borderColor: B, backgroundColor: `${B}14` } : {}
-          }
           className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium text-left transition-all ${
             value === opt
-              ? "text-white"
-              : "border-[#2a2a2a] bg-[#1a1a1a] text-gray-400 hover:border-[#FDB8D7]/40 hover:text-gray-300"
+              ? "border-pink-500 bg-pink-50 text-gray-900"
+              : "border-gray-200 bg-white text-gray-600 hover:border-pink-300 hover:text-gray-800"
           }`}
         >
           <div
-            style={value === opt ? { borderColor: B } : {}}
-            className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-              value === opt ? "" : "border-[#444]"
+            className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+              value === opt ? "border-pink-500" : "border-gray-300"
             }`}
           >
             {value === opt && (
-              <div
-                style={{ backgroundColor: B }}
-                className="w-2 h-2 rounded-full"
-              />
+              <div className="w-2 h-2 rounded-full bg-pink-500" />
             )}
           </div>
           {opt}
@@ -489,21 +438,22 @@ function StyledCheckbox({
         id={id}
         checked={checked}
         onCheckedChange={(v) => onCheckedChange(!!v)}
-        style={checked ? { backgroundColor: B, borderColor: B } : {}}
         className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-          checked ? "" : "border-[#444] bg-[#1a1a1a] hover:border-[#FDB8D7]/60"
+          checked
+            ? "bg-pink-500 border-pink-500"
+            : "border-gray-300 bg-white hover:border-pink-400"
         }`}
       >
         <CheckboxPrimitive.Indicator>
           <Check
-            className="w-3 h-3 text-[#1a0a10]"
+            className="w-3 h-3 text-white"
             strokeWidth={3}
           />
         </CheckboxPrimitive.Indicator>
       </CheckboxPrimitive.Root>
       <label
         htmlFor={id}
-        className="text-sm text-gray-300 cursor-pointer leading-relaxed"
+        className="text-sm text-gray-700 cursor-pointer leading-relaxed"
       >
         {label}
       </label>
@@ -528,7 +478,7 @@ function SuccessScreen() {
           angle,
           spread: 70,
           origin,
-          colors: ["#FDB8D7", "#ffffff", "#f9a8d4", "#fce7f3", "#e879a0"],
+          colors: ["#ec4899", "#ffffff", "#fbcfe8", "#fdf2f8", "#be185d"],
           scalar: 1.1,
           gravity: 0.9,
           drift: 0,
@@ -555,12 +505,9 @@ function SuccessScreen() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="bg-[#111111] border border-[#1f1f1f] rounded-3xl shadow-2xl p-10 max-w-md w-full text-center">
-        <div
-          className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg"
-          style={{ boxShadow: `0 0 0 2px ${B}40` }}
-        >
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="bg-white border border-gray-200 rounded-3xl shadow-lg p-10 max-w-md w-full text-center">
+        <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 shadow-md ring-2 ring-pink-200">
           <Image
             src="/logo.jpeg"
             alt="Effervescent Agency"
@@ -569,10 +516,10 @@ function SuccessScreen() {
             className="w-full h-full object-cover"
           />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-3">
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">
           Application Submitted!
         </h2>
-        <p className="text-gray-300 text-base leading-relaxed">
+        <p className="text-gray-600 text-base leading-relaxed">
           Thank you! We&apos;ll be in touch soon.
         </p>
       </div>
@@ -808,14 +755,11 @@ export default function ApplyPage() {
   // ─── Form Layout ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-[#0d0d0d]/95 backdrop-blur-sm border-b border-[#1a1a1a] sticky top-0 z-20">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div
-            className="h-10 rounded-xl overflow-hidden"
-            style={{ boxShadow: `0 0 0 1px ${B}30` }}
-          >
+          <div className="h-10 rounded-xl overflow-hidden ring-1 ring-pink-200">
             <Image
               src="/logo.jpeg"
               alt="Effervescent Agency"
@@ -824,14 +768,7 @@ export default function ApplyPage() {
               className="h-10 w-auto object-contain"
             />
           </div>
-          <span
-            className="text-xs font-semibold px-3 py-1 rounded-full border"
-            style={{
-              color: B,
-              backgroundColor: `${B}12`,
-              borderColor: `${B}35`,
-            }}
-          >
+          <span className="text-xs font-semibold px-3 py-1 rounded-full border bg-pink-50 text-pink-600 border-pink-200">
             {slide} / 5
           </span>
         </div>
@@ -846,19 +783,12 @@ export default function ApplyPage() {
               className="flex flex-col items-center gap-1 flex-1"
             >
               <div
-                style={
-                  s <= slide
-                    ? {
-                        backgroundColor: B,
-                        color: "#1a0a10",
-                        boxShadow: s === slide ? `0 0 0 4px ${B}30` : undefined,
-                      }
-                    : {}
-                }
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
                   s <= slide
-                    ? ""
-                    : "bg-[#1a1a1a] text-gray-600 border border-[#2a2a2a]"
+                    ? s === slide
+                      ? "bg-pink-500 text-white ring-4 ring-pink-100"
+                      : "bg-pink-500 text-white"
+                    : "bg-white text-gray-400 border border-gray-200"
                 }`}
               >
                 {s < slide ? (
@@ -871,45 +801,36 @@ export default function ApplyPage() {
                 )}
               </div>
               <span
-                style={s === slide ? { color: B } : {}}
-                className={`text-[10px] font-medium text-center leading-none hidden sm:block ${s === slide ? "" : "text-gray-600"}`}
+                className={`text-[10px] font-medium text-center leading-none hidden sm:block ${
+                  s === slide ? "text-pink-500" : "text-gray-400"
+                }`}
               >
                 {SLIDE_LABELS[s - 1]}
               </span>
             </div>
           ))}
         </div>
-        <div className="h-1 bg-[#1a1a1a] rounded-full overflow-hidden">
+        <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
           <div
-            style={{
-              width: `${((slide - 1) / 4) * 100}%`,
-              background: `linear-gradient(to right, ${B}, #e89fbe)`,
-            }}
-            className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${((slide - 1) / 4) * 100}%` }}
+            className="h-full rounded-full bg-gradient-to-r from-pink-400 to-pink-600 transition-all duration-500 ease-out"
           />
         </div>
       </div>
 
       {/* Slide Card */}
       <div
-        className={`max-w-xl mx-auto px-4 py-4 transition-all duration-200 ease-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}
+        className={`max-w-xl mx-auto px-4 py-4 transition-all duration-200 ease-out ${
+          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+        }`}
       >
-        <div className="bg-[#111111] rounded-3xl border border-[#1f1f1f] overflow-hidden shadow-2xl">
+        <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
           {/* Card Header */}
-          <div
-            className="px-6 py-5"
-            style={{ background: `linear-gradient(135deg, #2a0d1c, #3d1228)` }}
-          >
-            <p
-              className="text-xs font-semibold uppercase tracking-widest mb-1"
-              style={{ color: `${B}90` }}
-            >
+          <div className="px-6 py-5 bg-gradient-to-r from-pink-500 to-pink-400">
+            <p className="text-xs font-semibold uppercase tracking-widest mb-1 text-pink-100">
               Step {slide} of 5
             </p>
-            <h2
-              className="text-xl font-bold"
-              style={{ color: B }}
-            >
+            <h2 className="text-xl font-bold text-white">
               {SLIDE_TITLES[slide - 1]}
             </h2>
           </div>
@@ -973,33 +894,24 @@ export default function ApplyPage() {
                     placeholder="+971501234567  ·  +447700000000  ·  +34600000000"
                   />
                   {/* Clear, non-technical hint for all countries */}
-                  <div
-                    className="mt-2 rounded-xl px-3 py-2.5 text-xs leading-relaxed space-y-1"
-                    style={{
-                      backgroundColor: `${B}08`,
-                      border: `1px solid ${B}20`,
-                    }}
-                  >
-                    <p
-                      className="font-semibold"
-                      style={{ color: B }}
-                    >
+                  <div className="mt-2 rounded-xl px-3 py-2.5 text-xs leading-relaxed space-y-1 bg-pink-50 border border-pink-200">
+                    <p className="font-semibold text-pink-600">
                       ⚠️ Important — include your country code
                     </p>
-                    <p className="text-gray-400">
+                    <p className="text-gray-600">
                       Start with{" "}
-                      <span className="text-gray-200 font-medium">+</span>{" "}
+                      <span className="text-gray-800 font-medium">+</span>{" "}
                       followed by your country code, then your number. No spaces
                       or dashes.
                     </p>
                     <p className="text-gray-500">
-                      🇬🇧 UK: <span className="text-gray-300">+44</span>
+                      🇬🇧 UK: <span className="text-gray-700">+44</span>
                       7700000000 &nbsp;·&nbsp; 🇦🇪 UAE:{" "}
-                      <span className="text-gray-300">+971</span>501234567
+                      <span className="text-gray-700">+971</span>501234567
                       &nbsp;·&nbsp; 🇪🇸 Spain:{" "}
-                      <span className="text-gray-300">+34</span>600000000
+                      <span className="text-gray-700">+34</span>600000000
                     </p>
-                    <p className="text-gray-600">
+                    <p className="text-gray-400">
                       We use this number to contact you via WhatsApp — a wrong
                       number means we can&apos;t reach you.
                     </p>
@@ -1035,7 +947,7 @@ export default function ApplyPage() {
                 <div>
                   <FieldLabel>
                     Second Choice Location{" "}
-                    <span className="text-gray-600 font-normal text-xs">
+                    <span className="text-gray-400 font-normal text-xs">
                       (optional)
                     </span>
                   </FieldLabel>
@@ -1049,7 +961,7 @@ export default function ApplyPage() {
                 <div>
                   <FieldLabel>
                     Location Not Listed?{" "}
-                    <span className="text-gray-600 font-normal text-xs">
+                    <span className="text-gray-400 font-normal text-xs">
                       (optional)
                     </span>
                   </FieldLabel>
@@ -1067,10 +979,7 @@ export default function ApplyPage() {
                   />
                   <FieldError message={errors.isStudent} />
                   {form.isStudent === "yes" && (
-                    <div
-                      className="mt-3 pl-4 border-l-2 space-y-0"
-                      style={{ borderColor: `${B}40` }}
-                    >
+                    <div className="mt-3 pl-4 border-l-2 border-pink-200 space-y-0">
                       <FieldLabel required>Home City</FieldLabel>
                       <TextInput
                         value={form.homeCity}
@@ -1091,6 +1000,7 @@ export default function ApplyPage() {
                 </div>
               </>
             )}
+
             {/* ── Slide 3 ── */}
             {slide === 3 && (
               <>
@@ -1101,19 +1011,13 @@ export default function ApplyPage() {
                   </p>
                   <label
                     htmlFor="photos-input"
-                    className="border-2 border-dashed border-[#2a2a2a] rounded-2xl p-6 text-center bg-[#141414] cursor-pointer transition-all block"
+                    className="border-2 border-dashed border-pink-200 rounded-2xl p-6 text-center bg-pink-50/40 cursor-pointer hover:bg-pink-50 transition-all block"
                   >
-                    <Upload
-                      className="w-8 h-8 mx-auto mb-2"
-                      style={{ color: B }}
-                    />
-                    <p
-                      className="text-sm font-semibold"
-                      style={{ color: B }}
-                    >
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-pink-400" />
+                    <p className="text-sm font-semibold text-pink-500">
                       Click to add photos
                     </p>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                       {form.photos.length} / 2 uploaded
                       {form.photos.length < 2 && " (need at least 2)"}
                     </p>
@@ -1136,7 +1040,7 @@ export default function ApplyPage() {
                       {form.photos.map((p, i) => (
                         <div
                           key={i}
-                          className="relative rounded-xl overflow-hidden bg-[#1a1a1a] aspect-square group"
+                          className="relative rounded-xl overflow-hidden bg-gray-100 aspect-square group"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
@@ -1167,36 +1071,30 @@ export default function ApplyPage() {
                   <FieldLabel required>
                     Upload Photo ID (Passport Only)
                   </FieldLabel>
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-3 text-xs text-amber-400 leading-relaxed">
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 text-xs text-amber-700 leading-relaxed">
                     <strong>Note:</strong> We require a passport copy for Right
                     to Work in UK check. If you have a non-UK passport, you will
                     also need to provide your Share Code.{" "}
-                    <span className="text-amber-500/80">
+                    <span className="text-amber-600">
                       We do NOT accept driving licences.
                     </span>
                   </div>
                   {!form.passportId ? (
                     <label
                       htmlFor="id-input"
-                      className="border-2 border-dashed border-[#2a2a2a] rounded-2xl p-6 text-center bg-[#141414] cursor-pointer transition-all block"
+                      className="border-2 border-dashed border-pink-200 rounded-2xl p-6 text-center bg-pink-50/40 cursor-pointer hover:bg-pink-50 transition-all block"
                     >
-                      <Upload
-                        className="w-8 h-8 mx-auto mb-2"
-                        style={{ color: B }}
-                      />
-                      <p
-                        className="text-sm font-semibold"
-                        style={{ color: B }}
-                      >
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-pink-400" />
+                      <p className="text-sm font-semibold text-pink-500">
                         Click to upload passport
                       </p>
-                      <p className="text-xs text-gray-600 mt-1">
+                      <p className="text-xs text-gray-500 mt-1">
                         JPG or PNG only — max 10MB
                       </p>
                     </label>
                   ) : (
-                    <div className="flex items-center gap-3 bg-[#1a1a1a] rounded-xl p-3 border border-[#2a2a2a]">
-                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#222] flex-shrink-0">
+                    <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 border border-gray-200">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={form.passportId.base64}
@@ -1205,7 +1103,7 @@ export default function ApplyPage() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-200 truncate">
+                        <p className="text-sm font-medium text-gray-800 truncate">
                           {form.passportId.name}
                         </p>
                         <p className="text-xs text-gray-500">
@@ -1215,7 +1113,7 @@ export default function ApplyPage() {
                       <button
                         type="button"
                         onClick={() => upd({ passportId: null })}
-                        className="text-red-400 p-2"
+                        className="text-red-400 hover:text-red-600 p-2 transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1273,10 +1171,7 @@ export default function ApplyPage() {
                   />
                   <FieldError message={errors.priorExp} />
                   {form.priorExp === "yes" && (
-                    <div
-                      className="mt-3 pl-4 border-l-2 space-y-4"
-                      style={{ borderColor: `${B}40` }}
-                    >
+                    <div className="mt-3 pl-4 border-l-2 border-pink-200 space-y-4">
                       <div>
                         <FieldLabel required>
                           Previous Company / Venue
@@ -1351,14 +1246,8 @@ export default function ApplyPage() {
             {/* ── Slide 5 ── */}
             {slide === 5 && (
               <>
-                <div
-                  className="rounded-2xl p-5 space-y-5 border"
-                  style={{ backgroundColor: `${B}08`, borderColor: `${B}20` }}
-                >
-                  <p
-                    className="text-sm font-bold"
-                    style={{ color: B }}
-                  >
+                <div className="rounded-2xl p-5 space-y-5 bg-pink-50 border border-pink-200">
+                  <p className="text-sm font-bold text-pink-600">
                     Please read and tick each box to confirm:
                   </p>
                   <div>
@@ -1369,7 +1258,7 @@ export default function ApplyPage() {
                       label={
                         <span>
                           I understand this is{" "}
-                          <strong className="text-white">
+                          <strong className="text-gray-900">
                             self-employed work, NOT employment
                           </strong>
                         </span>
@@ -1385,7 +1274,7 @@ export default function ApplyPage() {
                       label={
                         <span>
                           I understand this is predominantly{" "}
-                          <strong className="text-white">
+                          <strong className="text-gray-900">
                             weekend / night time work
                           </strong>
                         </span>
@@ -1405,9 +1294,9 @@ export default function ApplyPage() {
                   <FieldError message={errors.heardAbout} />
                 </div>
                 {submitError && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-400">{submitError}</p>
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-600">{submitError}</p>
                   </div>
                 )}
               </>
@@ -1415,12 +1304,12 @@ export default function ApplyPage() {
           </div>
 
           {/* Navigation Footer */}
-          <div className="px-6 py-4 border-t border-[#1a1a1a] flex justify-between items-center">
+          <div className="px-6 py-4 border-t border-gray-100 flex justify-between items-center bg-gray-50/50">
             <button
               type="button"
               onClick={() => slide > 1 && goToSlide(slide - 1)}
               disabled={slide === 1}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-[#2a2a2a] text-gray-400 bg-[#141414] hover:border-[#FDB8D7]/50 hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-300 text-gray-600 bg-white hover:border-pink-400 hover:text-pink-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft className="w-4 h-4" />
               Back
@@ -1429,15 +1318,11 @@ export default function ApplyPage() {
               type="button"
               onClick={handleNext}
               disabled={submitting}
-              style={{
-                background: `linear-gradient(135deg, ${B}, #e89fbe)`,
-                color: "#1a0a10",
-              }}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-pink-500 hover:bg-pink-600 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {submitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-[#1a0a10]/30 border-t-[#1a0a10] rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Submitting…
                 </>
               ) : slide === 5 ? (
@@ -1452,7 +1337,7 @@ export default function ApplyPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-700 mt-4 pb-4">
+        <p className="text-center text-xs text-gray-400 mt-4 pb-4">
           Your information is handled securely and will only be used for your
           application.
         </p>
