@@ -757,7 +757,7 @@ export default function ApplyPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      {/* <header className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="h-10 rounded-xl overflow-hidden ring-1 ring-pink-200">
             <Image
@@ -772,7 +772,7 @@ export default function ApplyPage() {
             {slide} / 5
           </span>
         </div>
-      </header> */}
+      </header>
 
       {/* Progress */}
       <div className="max-w-xl mx-auto px-4 pt-5 pb-2">

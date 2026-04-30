@@ -81,8 +81,8 @@ export const T = {
   // ── Text ─────────────────────────────────────────────────────────────────────
   text: {
     primary: PALETTE.gray900,
-    secondary: PALETTE.gray600,
-    muted: PALETTE.gray400,
+    secondary: PALETTE.gray900,
+    muted: PALETTE.gray900,
     inverse: PALETTE.white,
     brand: PALETTE.pink,
     link: PALETTE.pink,
