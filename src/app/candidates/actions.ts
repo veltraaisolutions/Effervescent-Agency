@@ -166,3 +166,13 @@ export async function updateTrialDetails(
   if (error) return { error: error.message };
   return {};
 }
+
+export async function deleteCandidate(id: string): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .from("milli_candidates")
+    .delete()
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  return {};
+}

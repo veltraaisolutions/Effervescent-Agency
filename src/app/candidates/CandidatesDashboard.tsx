@@ -30,6 +30,7 @@ import {
   CheckSquare,
   Square,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { Candidate } from "./types";
 import {
@@ -42,6 +43,7 @@ import {
   updateTrialDetails,
   updateOnboardingChecklist,
   updateStaffNotes,
+  deleteCandidate,
 } from "./actions";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -1678,11 +1680,6 @@ export function CandidatesDashboard({
   const [pendingReject, setPendingReject] = useState<Candidate | null>(null);
   const [rejectPending, setRejectPending] = useState(false);
 
-  // ── Supabase Realtime subscription ─────────────────────────────────────────
-  // Listens for INSERT and UPDATE on milli_candidates.
-  // Prerequisites:
-  //   1. Enable Realtime on the milli_candidates table in Supabase dashboard
-  //   2. NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set
   useEffect(() => {
     const channel = supabase
       .channel("milli_candidates_realtime")
@@ -1809,6 +1806,20 @@ export function CandidatesDashboard({
       rejection_reason: reason,
     });
     setPendingReject(null);
+  }
+
+  async function handleDelete(candidate: Candidate) {
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete "${candidate.full_name}"? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    const result = await deleteCandidate(candidate.id);
+    if (result.error) {
+      window.alert(`Failed to delete: ${result.error}`);
+      return;
+    }
+    setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
+    if (selected?.id === candidate.id) setSelected(null);
   }
 
   function toggleSort(key: SortKey) {
@@ -2229,6 +2240,21 @@ export function CandidatesDashboard({
                             >
                               <Eye className="w-3.5 h-3.5" />
                             </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(c);
+                              }}
+                              className="p-1.5 rounded-lg border transition-colors"
+                              style={{
+                                background: T.bg.badge.rejected,
+                                borderColor: T.border.badge.rejected,
+                                color: T.text.badge.rejected,
+                              }}
+                              title="Delete candidate"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -2305,6 +2331,21 @@ export function CandidatesDashboard({
                         style={{ color: T.text.muted }}
                       >
                         <Eye className="w-3.5 h-3.5" /> View
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(c);
+                        }}
+                        className="p-1.5 rounded-lg border transition-colors"
+                        style={{
+                          background: T.bg.badge.rejected,
+                          borderColor: T.border.badge.rejected,
+                          color: T.text.badge.rejected,
+                        }}
+                        title="Delete candidate"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
