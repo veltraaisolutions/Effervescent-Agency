@@ -1367,26 +1367,57 @@ function CandidateModal({
                 Photos ({candidate.photo_urls.length})
               </h4>
               <div className="grid grid-cols-3 gap-2">
-                {candidate.photo_urls.map((url, i) => (
-                  <a
-                    key={i}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="aspect-square rounded-xl overflow-hidden block hover:opacity-90 transition-opacity border"
-                    style={{
-                      background: T.bg.surfaceAlt,
-                      borderColor: T.border.default,
-                    }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={url}
-                      alt={`Photo ${i + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </a>
-                ))}
+                {candidate.photo_urls.map((pUrl: string, i: number) => {
+                  const pIsPDF =
+                    pUrl.toLowerCase().includes(".pdf") ||
+                    pUrl.toLowerCase().includes("/raw/");
+                  if (pIsPDF) {
+                    return (
+                      <a
+                        key={i}
+                        href={pUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="aspect-square rounded-xl overflow-hidden flex flex-col items-center justify-center gap-2 hover:opacity-90 transition-opacity border"
+                        style={{
+                          background: T.bg.surfaceAlt,
+                          borderColor: T.border.default,
+                        }}
+                      >
+                        <FileText
+                          className="w-8 h-8"
+                          style={{ color: T.brand.primary }}
+                        />
+                        <span
+                          className="text-[10px] text-center px-2"
+                          style={{ color: T.text.muted }}
+                        >
+                          PDF
+                        </span>
+                      </a>
+                    );
+                  }
+                  return (
+                    <a
+                      key={i}
+                      href={pUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="aspect-square rounded-xl overflow-hidden block hover:opacity-90 transition-opacity border"
+                      style={{
+                        background: T.bg.surfaceAlt,
+                        borderColor: T.border.default,
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={pUrl}
+                        alt={`Photo ${i + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </a>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1403,35 +1434,60 @@ function CandidateModal({
               }}
             >
               <Upload className="w-4 h-4" />
-              Upload Photo
+              Upload Photo / PDF
             </label>
             <input
               id={`staff-upload-${candidate.id}`}
               type="file"
-              accept="image/*"
+              accept="image/*,application/pdf"
               hidden
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 setPendingUploadFile(file);
-                const reader = new FileReader();
-                reader.onload = () => {
-                  setPendingUploadPreview(reader.result as string);
-                };
-                reader.readAsDataURL(file);
+                if (file.type === "application/pdf") {
+                  setPendingUploadPreview(null); // no image preview for PDFs
+                } else {
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    setPendingUploadPreview(reader.result as string);
+                  };
+                  reader.readAsDataURL(file);
+                }
               }}
             />
-            {pendingUploadPreview && (
+            {(pendingUploadPreview || pendingUploadFile) && (
               <div className="mt-3 space-y-2">
-                <div className="relative w-full h-48">
-                  <Image
-                    src={pendingUploadPreview}
-                    alt="Preview"
-                    fill
-                    className="object-contain rounded-xl border"
-                    style={{ borderColor: T.border.default }}
-                  />
-                </div>
+                {pendingUploadFile?.type === "application/pdf" ? (
+                  <div
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl border"
+                    style={{
+                      background: T.bg.surfaceAlt,
+                      borderColor: T.border.default,
+                    }}
+                  >
+                    <FileText
+                      className="w-6 h-6 flex-shrink-0"
+                      style={{ color: T.brand.primary }}
+                    />
+                    <span
+                      className="text-sm truncate"
+                      style={{ color: T.text.secondary }}
+                    >
+                      {pendingUploadFile.name}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="relative w-full h-48">
+                    <Image
+                      src={pendingUploadPreview!}
+                      alt="Preview"
+                      fill
+                      className="object-contain rounded-xl border"
+                      style={{ borderColor: T.border.default }}
+                    />
+                  </div>
+                )}
                 <button
                   onClick={async () => {
                     if (!pendingUploadFile) return;
@@ -1446,10 +1502,12 @@ function CandidateModal({
                           body: JSON.stringify({
                             candidate_id: candidate.id,
                             image: base64,
+                            file_name: pendingUploadFile.name,
+                            file_type: pendingUploadFile.type,
                           }),
                         },
                       );
-                      window.alert("Photo saved!");
+                      window.alert("File saved!");
                       setPendingUploadFile(null);
                       setPendingUploadPreview(null);
                     };
@@ -1458,7 +1516,7 @@ function CandidateModal({
                   className={T.cls.btnPrimary}
                 >
                   <Save className="w-4 h-4" />
-                  Save Photo
+                  Save File
                 </button>
               </div>
             )}
