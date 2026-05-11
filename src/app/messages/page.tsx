@@ -136,9 +136,6 @@ export default function MessagesPage() {
               </div>
               Message Logs
             </h1>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-2">
-              UK TIME FEED (LONDON)
-            </p>
           </div>
           <button
             onClick={fetchMessages}
