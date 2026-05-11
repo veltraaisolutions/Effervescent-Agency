@@ -3,6 +3,8 @@
 import { useState, ChangeEvent, FormEvent } from "react";
 import Image from "next/image";
 import { Upload, CheckCircle2 } from "lucide-react";
+import { useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 const BRAND_PINK = "#FFB8D7";
 const WEBHOOK_URL = "https://n8n.veltraai.net/webhook/sales-tracker";
@@ -115,6 +117,7 @@ interface SalesForm {
   city: string;
   venue: string;
   name: string;
+  reference_id: string;
   bottles: string;
   barEarning: string;
   cash: string;
@@ -131,6 +134,7 @@ const INITIAL: SalesForm = {
   city: "",
   venue: "",
   name: "",
+  reference_id: "",
   bottles: "",
   barEarning: "",
   cash: "",
@@ -168,6 +172,20 @@ export default function SalesTrackerPage() {
   const [form, setForm] = useState<SalesForm>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [staffList, setStaffList] = useState<
+    { full_name: string; reference_id: string }[]
+  >([]);
+
+  useEffect(() => {
+    supabase
+      .from("milli_staff")
+      .select("full_name, reference_id")
+      .eq("active", "true")
+      .then(({ data, error }) => {
+        console.log("staff data:", data, "error:", error);
+        setStaffList(data ?? []);
+      });
+  }, []);
 
   const upd = (patch: Partial<SalesForm>) =>
     setForm((f) => ({ ...f, ...patch }));
@@ -200,6 +218,7 @@ export default function SalesTrackerPage() {
       city: form.city,
       venue: form.venue,
       name: form.name,
+      reference_id: form.reference_id,
       bottles: form.bottles,
       barEarning: form.barEarning,
       cash: form.cash,
@@ -284,7 +303,6 @@ export default function SalesTrackerPage() {
               onChange={(e) => upd({ date: e.target.value })}
               required
             />
-
             <FieldLabel required>City</FieldLabel>
             <select
               className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium"
@@ -302,7 +320,6 @@ export default function SalesTrackerPage() {
                 </option>
               ))}
             </select>
-
             <FieldLabel required>Venue</FieldLabel>
             <select
               className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium"
@@ -320,15 +337,31 @@ export default function SalesTrackerPage() {
                 </option>
               ))}
             </select>
-
             <FieldLabel required>Full Name</FieldLabel>
-            <input
-              className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium placeholder:text-gray-400"
-              placeholder="Enter your name"
-              value={form.name}
-              onChange={(e) => upd({ name: e.target.value })}
+            <select
+              className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium"
+              value={form.reference_id}
+              onChange={(e) => {
+                const selected = staffList.find(
+                  (s) => s.reference_id === e.target.value,
+                );
+                upd({
+                  reference_id: e.target.value,
+                  name: selected?.full_name ?? "",
+                });
+              }}
               required
-            />
+            >
+              <option value="">Select Your Name</option>
+              {staffList.map((s) => (
+                <option
+                  key={s.reference_id}
+                  value={s.reference_id}
+                >
+                  {s.full_name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Block 2: Sales Figures (seller-visible only) */}
