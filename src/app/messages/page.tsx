@@ -225,7 +225,9 @@ export default function MessagesPage() {
                             </span>
                           </div>
                           <p className="text-xs text-gray-500 truncate">
-                            {contact.lastMsg.message_content}
+                            {contact.lastMsg.message_content.length > 45 
+                              ? contact.lastMsg.message_content.substring(0, 45) + '...' 
+                              : contact.lastMsg.message_content}
                           </p>
                         </div>
                       </button>
