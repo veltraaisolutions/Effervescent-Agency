@@ -288,20 +288,6 @@ export default function MessagesPage() {
                     </div>
                   </ScrollArea>
 
-                  {/* Simulated Input */}
-                  <div className="px-8 py-6 bg-white/40 border-t border-gray-100">
-                    <div className="bg-gray-100/50 rounded-[2rem] p-2 pl-6 flex items-center gap-2 border border-gray-200">
-                      <input
-                        type="text"
-                        readOnly
-                        placeholder="Type a message..."
-                        className="flex-1 bg-transparent border-none text-gray-500 text-sm font-medium focus:ring-0 cursor-not-allowed"
-                      />
-                      <div className="w-11 h-11 bg-[#be185d] rounded-full flex items-center justify-center cursor-not-allowed shadow-sm shrink-0">
-                        <Send className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                  </div>
                 </>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-gray-300">
