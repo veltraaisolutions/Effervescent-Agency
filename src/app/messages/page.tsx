@@ -35,6 +35,28 @@ export default function MessagesPage() {
 
   useEffect(() => {
     fetchMessages();
+
+    // Set up Realtime subscription to listen for new messages
+    const channel = supabase
+      .channel('maddy_messages_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'maddy_candidate_messages'
+        },
+        (payload) => {
+          console.log('New message received:', payload.new);
+          // Trigger a full refetch to keep everything perfectly in sync
+          fetchMessages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   async function fetchMessages() {
@@ -72,6 +94,14 @@ export default function MessagesPage() {
     }
   }
 
+  const formatUKTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString('en-GB', { 
+      timeZone: 'Europe/London', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
   const contacts = useMemo(() => {
     const map = new Map<string, { name: string | null; lastMsg: Message }>();
     messages.forEach(m => {
@@ -80,14 +110,14 @@ export default function MessagesPage() {
         map.set(m.phone, { name: m.name, lastMsg: m });
       }
     });
-
+    
     return Array.from(map.entries())
       .map(([phone, data]) => ({ phone, ...data }))
       .sort((a, b) => new Date(b.lastMsg.created_at).getTime() - new Date(a.lastMsg.created_at).getTime());
   }, [messages]);
 
-  const filteredContacts = contacts.filter(c =>
-    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredContacts = contacts.filter(c => 
+    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.phone.includes(searchTerm)
   );
 
@@ -95,19 +125,19 @@ export default function MessagesPage() {
   const selectedContact = contacts.find(c => c.phone === selectedPhone);
 
   return (
-    <div className={`flex flex-col h-screen overflow-hidden font-sans ${T.cls.page}`}>
+    <div className={`flex flex-col h-screen overflow-hidden font-sans bg-[#f3f4f6]`}>
       {/* Header */}
       <div className="px-8 pt-8 pb-4">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-gray-900 flex items-center gap-3">
-              <div className="p-2 bg-[#FDB8D7]/10 rounded-xl">
-                <MessageSquare className="w-8 h-8 text-[#FDB8D7]" />
+              <div className="p-2 bg-[#FDB8D7]/20 rounded-xl">
+                <MessageSquare className="w-8 h-8 text-[#be185d]" />
               </div>
               Message Logs
             </h1>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-2">
-              REAL-TIME WHATSAPP FEED
+              UK TIME FEED (LONDON)
             </p>
           </div>
           <button
@@ -123,7 +153,7 @@ export default function MessagesPage() {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden p-8 pt-4 gap-6">
         {error ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-white rounded-[2.5rem] border border-red-100 shadow-sm">
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-white/50 rounded-[2.5rem] border border-red-100 shadow-sm backdrop-blur-md">
             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-6">
               <RefreshCw className="w-8 h-8 text-red-400" />
             </div>
@@ -139,18 +169,18 @@ export default function MessagesPage() {
         ) : (
           <>
             {/* Sidebar */}
-            <div className={`${T.cls.tableWrap} w-full max-w-[360px] flex flex-col overflow-hidden shadow-sm`}>
+            <div className={`${T.cls.tableWrap} w-full max-w-[360px] flex flex-col overflow-hidden shadow-sm bg-white/80 backdrop-blur-sm border-gray-100`}>
               <div className="p-6 border-b border-gray-100">
                 <p className={T.cls.infoLabel}>Conversations</p>
                 <h2 className="text-xl font-black mt-1 mb-6 text-gray-900">Contacts</h2>
                 <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#FDB8D7] transition-colors" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#be185d] transition-colors" />
                   <input
                     type="text"
-                    placeholder="Search contacts..."
+                    placeholder="Search by name or number..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className={`${T.cls.input} pl-11`}
+                    className={`${T.cls.input} pl-11 bg-gray-50/50 focus:bg-white`}
                   />
                 </div>
               </div>
@@ -178,28 +208,23 @@ export default function MessagesPage() {
                         key={contact.phone}
                         onClick={() => setSelectedPhone(contact.phone)}
                         className={`w-full flex items-center gap-4 p-4 rounded-3xl transition-all text-left ${selectedPhone === contact.phone
-                            ? "bg-[#FDB8D7]/10 ring-1 ring-[#FDB8D7]/20"
-                            : "hover:bg-gray-50"
+                            ? "bg-[#FDB8D7]/20 ring-1 ring-[#FDB8D7]/30"
+                            : "hover:bg-gray-50/80"
                           }`}
                       >
                         <div className={`w-11 h-11 rounded-full flex items-center justify-center text-lg font-black shrink-0 ${selectedPhone === contact.phone
-                            ? "bg-[#FDB8D7] text-white"
-                            : "bg-gray-100 text-gray-400"
+                            ? "bg-[#be185d] text-white"
+                            : "bg-gray-200 text-gray-400"
                           }`}>
                           {(contact.name?.[0] || contact.phone.slice(-1)).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-baseline mb-0.5 min-w-0">
                             <div className={`font-bold text-sm ${selectedPhone === contact.phone ? "text-[#be185d]" : "text-gray-900"} flex items-center gap-1.5 min-w-0`}>
-                              {contact.lastMsg.type === 'Inbound' ? (
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title="Last message was inbound" />
-                              ) : (
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" title="Last message was outbound" />
-                              )}
                               <span className="truncate">{contact.name || "Unknown"}</span>
                             </div>
                             <span className="text-[10px] font-semibold text-gray-400 shrink-0 ml-2">
-                              {new Date(contact.lastMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {formatUKTime(contact.lastMsg.created_at)}
                             </span>
                           </div>
                           <p className="text-xs text-gray-500 truncate">
@@ -214,32 +239,29 @@ export default function MessagesPage() {
             </div>
 
             {/* Chat Pane */}
-            <div className={`${T.cls.tableWrap} flex-1 flex flex-col overflow-hidden relative shadow-sm`}>
+            <div className={`${T.cls.tableWrap} flex-1 flex flex-col overflow-hidden relative shadow-sm bg-white/60 backdrop-blur-sm border-gray-100`}>
               {selectedPhone ? (
                 <>
                   {/* Chat Top Bar */}
-                  <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
+                  <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white/40 backdrop-blur-md sticky top-0 z-10">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-[#FDB8D7]/10 rounded-full flex items-center justify-center border border-[#FDB8D7]/20">
-                        <UserIcon className="w-5 h-5 text-[#FDB8D7]" />
+                      <div className="w-10 h-10 bg-[#FDB8D7]/20 rounded-full flex items-center justify-center border border-[#FDB8D7]/30">
+                        <UserIcon className="w-5 h-5 text-[#be185d]" />
                       </div>
-                      <div>
-                      <h3 className="text-lg font-black tracking-tight text-gray-900 truncate max-w-[300px]" title={selectedContact?.name || "Candidate"}>
-                        {selectedContact?.name || "Candidate"} - Whatsapp
-                      </h3>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
-                        <Phone className="w-3 h-3 text-[#FDB8D7]/50" />
-                        {selectedPhone}
-                      </p>
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-black tracking-tight text-gray-900 truncate max-w-[400px]" title={selectedContact?.name || "Candidate"}>
+                          {selectedContact?.name || "Candidate"}
+                        </h3>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
+                          <Phone className="w-3 h-3 text-[#be185d]/40" />
+                          {selectedPhone}
+                        </p>
+                      </div>
                     </div>
-                    </div>
-                    <button className="p-2 hover:bg-gray-50 rounded-xl transition-colors text-gray-400">
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
                   </div>
 
                   {/* Messages Feed */}
-                  <ScrollArea className="flex-1 px-8 py-8 bg-gray-50/30">
+                  <ScrollArea className="flex-1 px-8 py-8 bg-gray-50/40">
                     <div className="space-y-6 max-w-3xl mx-auto">
                       {selectedMessages.map((msg) => {
                         const isOutbound = msg.type === 'Outbound';
@@ -248,26 +270,16 @@ export default function MessagesPage() {
                             key={msg.id}
                             className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'}`}
                           >
-                            <div className={`max-w-[85%] rounded-3xl p-5 shadow-sm relative break-words ${isOutbound
-                                ? "bg-white border border-[#FDB8D7]/20 text-gray-800 rounded-tr-md"
-                                : "bg-white border border-gray-100 text-gray-700 rounded-tl-md shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
+                            <div className={`max-w-[85%] rounded-3xl p-5 shadow-sm relative break-words border ${isOutbound
+                                ? "bg-[#FDB8D7]/10 border-[#FDB8D7]/20 text-gray-800 rounded-tr-md"
+                                : "bg-white border-gray-200 text-gray-700 rounded-tl-md"
                               }`}>
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${isOutbound ? "bg-[#FDB8D7]/20 text-[#be185d]" : "bg-gray-100 text-gray-500"
-                                  }`}>
-                                  {isOutbound ? <Bot className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
-                                </div>
-                                <span className={`text-[10px] font-black uppercase tracking-wider ${isOutbound ? "text-[#be185d]/70" : "text-gray-400"
-                                  }`}>
-                                  {isOutbound ? "Outbound Message" : "Inbound Message"}
-                                </span>
-                              </div>
                               <p className="text-[14px] leading-relaxed whitespace-pre-wrap font-medium">
                                 {msg.message_content}
                               </p>
-                              <div className="text-[9px] mt-3 font-bold text-gray-300 flex justify-end items-center gap-2 uppercase tracking-tighter">
-                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                {isOutbound && <span>· READ</span>}
+                              <div className="text-[9px] mt-3 font-bold text-gray-400 flex justify-end items-center gap-2 uppercase tracking-tighter">
+                                {formatUKTime(msg.created_at)}
+                                {isOutbound && <span>· SENT</span>}
                               </div>
                             </div>
                           </div>
@@ -277,23 +289,23 @@ export default function MessagesPage() {
                   </ScrollArea>
 
                   {/* Simulated Input */}
-                  <div className="px-8 py-6 bg-white border-t border-gray-100">
-                    <div className="bg-gray-50 rounded-[2rem] p-2 pl-6 flex items-center gap-2 border border-gray-100">
+                  <div className="px-8 py-6 bg-white/40 border-t border-gray-100">
+                    <div className="bg-gray-100/50 rounded-[2rem] p-2 pl-6 flex items-center gap-2 border border-gray-200">
                       <input
                         type="text"
                         readOnly
                         placeholder="Type a message..."
                         className="flex-1 bg-transparent border-none text-gray-500 text-sm font-medium focus:ring-0 cursor-not-allowed"
                       />
-                      <div className="w-11 h-11 bg-[#FDB8D7] rounded-full flex items-center justify-center cursor-not-allowed shadow-sm shrink-0">
+                      <div className="w-11 h-11 bg-[#be185d] rounded-full flex items-center justify-center cursor-not-allowed shadow-sm shrink-0">
                         <Send className="w-5 h-5 text-white" />
                       </div>
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-gray-200">
-                  <MessageSquare className="w-20 h-20 mb-6 opacity-20" />
+                <div className="flex-1 flex flex-col items-center justify-center text-gray-300">
+                  <MessageSquare className="w-20 h-20 mb-6 opacity-10" />
                   <p className="text-xl font-black tracking-tight uppercase">Select a conversation</p>
                 </div>
               )}
