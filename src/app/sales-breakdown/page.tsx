@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useState, ChangeEvent, FormEvent, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Upload, CheckCircle2 } from "lucide-react";
-import { useEffect } from "react";
+import { Upload, CheckCircle2, Lock, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const BRAND_PINK = "#FFB8D7";
@@ -168,24 +168,76 @@ function FieldLabel({
   );
 }
 
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex flex-col items-center gap-4">
+        <div
+          className="w-10 h-10 rounded-full border-4 animate-spin"
+          style={{ borderColor: BRAND_PINK, borderTopColor: "transparent" }}
+        />
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">
+          Loading your form...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function InvalidLinkScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
+      <div className="max-w-sm w-full p-10 rounded-[2.5rem] bg-white shadow-sm border border-gray-100 text-center flex flex-col items-center gap-4">
+        <div className="w-14 h-14 rounded-full flex items-center justify-center bg-red-50">
+          <AlertTriangle className="w-6 h-6 text-red-400" />
+        </div>
+        <h2 className="text-lg font-black uppercase tracking-tighter text-gray-900">
+          Invalid Link
+        </h2>
+        <p className="text-xs text-gray-400 leading-relaxed">
+          This link is not valid or has expired.
+          <br />
+          Please contact your agency for your personal form link.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function SalesTrackerPage() {
+  const searchParams = useSearchParams();
+  const refParam = searchParams.get("ref"); // e.g. ?ref=STF-878
+
   const [form, setForm] = useState<SalesForm>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [staffList, setStaffList] = useState<
-    { full_name: string; reference_id: string }[]
-  >([]);
+  const [staffLoading, setStaffLoading] = useState(true);
+  const [staffValid, setStaffValid] = useState(false);
 
   useEffect(() => {
+    if (!refParam) {
+      setStaffLoading(false);
+      return;
+    }
+
     supabase
       .from("milli_staff")
       .select("full_name, reference_id")
-      .eq("active", "true")
+      .eq("reference_id", refParam.toUpperCase())
+      .eq("active", true)
+      .single()
       .then(({ data, error }) => {
-        console.log("staff data:", data, "error:", error);
-        setStaffList(data ?? []);
+        if (!error && data) {
+          setForm((f) => ({
+            ...f,
+            name: data.full_name,
+            reference_id: data.reference_id,
+          }));
+          setStaffValid(true);
+        }
+        setStaffLoading(false);
       });
-  }, []);
+  }, [refParam]);
 
   const upd = (patch: Partial<SalesForm>) =>
     setForm((f) => ({ ...f, ...patch }));
@@ -209,7 +261,7 @@ export default function SalesTrackerPage() {
     e.preventDefault();
     setSubmitting(true);
 
-    const imagesArray = [];
+    const imagesArray: string[] = [];
     if (form.bottleImage) imagesArray.push(form.bottleImage);
     if (form.paymentImage) imagesArray.push(form.paymentImage);
 
@@ -248,23 +300,33 @@ export default function SalesTrackerPage() {
     }
   };
 
+  if (staffLoading) return <LoadingScreen />;
+  if (!refParam || !staffValid) return <InvalidLinkScreen />;
+
   if (submitted)
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center bg-gray-50">
         <div className="p-12 rounded-[3rem] bg-white border border-gray-100 shadow-sm">
           <CheckCircle2 className="w-16 h-16 mx-auto mb-6 text-green-500" />
-          <h2 className="text-2xl font-black mb-6 uppercase tracking-tighter text-gray-900">
+          <h2 className="text-2xl font-black mb-2 uppercase tracking-tighter text-gray-900">
             Shift Submitted
           </h2>
+          <p className="text-xs text-gray-400 mb-8">
+            Nice work, {form.name.split(" ")[0]}.
+          </p>
           <button
             onClick={() => {
               setSubmitted(false);
-              setForm(INITIAL);
+              setForm((f) => ({
+                ...INITIAL,
+                name: f.name,
+                reference_id: f.reference_id,
+              }));
             }}
             style={{ backgroundColor: BRAND_PINK }}
             className="px-8 py-4 rounded-2xl font-black uppercase text-xs text-white"
           >
-            New Entry
+            Submit Another Shift
           </button>
         </div>
       </div>
@@ -295,6 +357,13 @@ export default function SalesTrackerPage() {
         >
           {/* Block 1: Basic Info */}
           <div className="p-8 rounded-[2rem] bg-white border border-gray-100 shadow-sm space-y-4">
+            {/* Name — locked, resolved from ?ref= param */}
+            <FieldLabel>Your Name</FieldLabel>
+            <div className="w-full rounded-2xl px-6 py-4 bg-gray-100 border border-gray-200 text-gray-700 font-semibold flex items-center justify-between">
+              <span>{form.name}</span>
+              <Lock className="w-4 h-4 text-gray-400" />
+            </div>
+
             <FieldLabel required>Date</FieldLabel>
             <input
               type="date"
@@ -303,6 +372,7 @@ export default function SalesTrackerPage() {
               onChange={(e) => upd({ date: e.target.value })}
               required
             />
+
             <FieldLabel required>City</FieldLabel>
             <select
               className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium"
@@ -320,6 +390,7 @@ export default function SalesTrackerPage() {
                 </option>
               ))}
             </select>
+
             <FieldLabel required>Venue</FieldLabel>
             <select
               className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium"
@@ -337,34 +408,9 @@ export default function SalesTrackerPage() {
                 </option>
               ))}
             </select>
-            <FieldLabel required>Full Name</FieldLabel>
-            <select
-              className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium"
-              value={form.reference_id}
-              onChange={(e) => {
-                const selected = staffList.find(
-                  (s) => s.reference_id === e.target.value,
-                );
-                upd({
-                  reference_id: e.target.value,
-                  name: selected?.full_name ?? "",
-                });
-              }}
-              required
-            >
-              <option value="">Select Your Name</option>
-              {staffList.map((s) => (
-                <option
-                  key={s.reference_id}
-                  value={s.reference_id}
-                >
-                  {s.full_name}
-                </option>
-              ))}
-            </select>
           </div>
 
-          {/* Block 2: Sales Figures (seller-visible only) */}
+          {/* Block 2: Sales Figures */}
           <div className="p-8 rounded-[2rem] bg-white border border-gray-100 shadow-sm space-y-4">
             <FieldLabel required>Exact Units Sold</FieldLabel>
             <input
@@ -463,7 +509,7 @@ export default function SalesTrackerPage() {
                 <FieldLabel>
                   {type === "bottle" ? "Bottle Photo" : "Payment Proof"}
                 </FieldLabel>
-                <label className="block w-full h-32 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer overflow-hidden bg-gray-50">
+                <label className="relative block w-full h-32 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer overflow-hidden bg-gray-50">
                   {form[`${type}Image`] ? (
                     <Image
                       src={form[`${type}Image`]!}
