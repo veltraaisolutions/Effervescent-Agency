@@ -22,6 +22,7 @@ export interface Sale {
   agency_amount: number;
   status: string;
   receipt_images: string | null;
+  reference_id: string | null;
   payment_link_sent?: boolean | null;
   reminder_sent?: boolean | null;
 }
