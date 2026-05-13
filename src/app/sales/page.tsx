@@ -1,10 +1,10 @@
-// src/app/sales/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { Sale } from "./types";
 import { getSales, updateSale } from "./actions";
 import { T } from "@/styles/theme";
+import { supabase } from "@/lib/supabase";
 import {
   Table,
   TableBody,
@@ -21,12 +21,16 @@ import {
   Pencil,
   Check,
   X,
+  Send,
 } from "lucide-react";
 
 const BRAND_PINK = "#FFB8D7";
+const SEND_STRIPE_WEBHOOK = "https://n8n.veltraai.net/webhook/send-stripe-link";
 const STATUS_OPTIONS = ["Pending", "Paid", "Follow up sent", "Disputed"];
 
-function rowBg(status: string) {
+function rowBg(status: string, reminderSent: boolean) {
+  // Red background if reminder sent and not paid — flags for Maddy
+  if (reminderSent && status !== "Paid") return "bg-red-100 hover:bg-red-200";
   const map: Record<string, string> = {
     Paid: "bg-green-50 hover:bg-green-100",
     Pending: "bg-orange-50 hover:bg-orange-100",
@@ -92,6 +96,7 @@ export default function SalesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editState, setEditState] = useState<Partial<Sale>>({});
   const [saving, setSaving] = useState(false);
+  const [sendingPaymentId, setSendingPaymentId] = useState<number | null>(null);
 
   useEffect(() => {
     getSales()
@@ -126,6 +131,66 @@ export default function SalesPage() {
 
   function editField(key: keyof Sale, value: string | boolean) {
     setEditState((prev) => ({ ...prev, [key]: value }));
+  }
+
+  // ── Send Payment Link ──────────────────────────────────────────────────────
+  async function handleSendPaymentLink(sale: Sale) {
+    setSendingPaymentId(sale.id);
+
+    try {
+      // Fetch phone + email from milli_candidates by reference_id
+      const { data: candidate } = await supabase
+        .from("milli_candidates")
+        .select("phone, email")
+        .eq("reference_id", sale.reference_id)
+        .single();
+
+      // Calculate amount: cash + card - deductions
+      const amount =
+        Number(sale.cash_collected ?? 0) +
+        Number(sale.card_amount ?? 0) -
+        Number(sale.deductions ?? 0);
+
+      const payload = {
+        sale_id: sale.id,
+        full_name: sale.full_name,
+        reference_id: sale.reference_id,
+        phone: candidate?.phone ?? null,
+        email: candidate?.email ?? null,
+        amount: Number(amount.toFixed(2)),
+        date_of_shift: sale.date_of_shift,
+        venue: sale.venue,
+      };
+
+      const res = await fetch(SEND_STRIPE_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Webhook failed");
+
+      // Mark payment_link_sent = true in DB
+      await supabase
+        .from("milli_sales")
+        .update({
+          payment_link_sent: true,
+          payment_link_sent_at: new Date().toISOString(),
+        })
+        .eq("id", sale.id);
+
+      // Update local UI
+      setSales((prev) =>
+        prev.map((s) =>
+          s.id === sale.id ? { ...s, payment_link_sent: true } : s,
+        ),
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send payment link. Please try again.");
+    } finally {
+      setSendingPaymentId(null);
+    }
   }
 
   function numInput(key: keyof Sale) {
@@ -168,7 +233,7 @@ export default function SalesPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-6 flex-wrap">
           <span className="text-xs text-gray-400 font-medium">Status:</span>
           {[
             {
@@ -195,6 +260,9 @@ export default function SalesPage() {
               {label}
             </span>
           ))}
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border bg-red-100 text-red-700 border-red-300">
+            🔴 Reminder Sent — Unpaid
+          </span>
         </div>
 
         {monthKeys.length === 0 ? (
@@ -230,6 +298,9 @@ export default function SalesPage() {
                       <TableHead className={T.cls.th}>Actions</TableHead>
                       <TableHead className={T.cls.th + " text-center"}>
                         Status
+                      </TableHead>
+                      <TableHead className={T.cls.th + " text-center"}>
+                        Payment
                       </TableHead>
                       <TableHead className={T.cls.th}>Date</TableHead>
                       <TableHead className={T.cls.th}>City</TableHead>
@@ -298,11 +369,15 @@ export default function SalesPage() {
                         ((isEditing
                           ? editState.status
                           : sale.status) as string) ?? "Pending";
+                      const reminderSent = sale.reminder_sent ?? false;
+                      const paymentLinkSent = sale.payment_link_sent ?? false;
+                      const isSendingThis = sendingPaymentId === sale.id;
+                      const isPaid = currentStatus === "Paid";
 
                       return (
                         <TableRow
                           key={sale.id}
-                          className={`${T.cls.tr} ${rowBg(currentStatus)}`}
+                          className={`${T.cls.tr} ${rowBg(currentStatus, reminderSent)}`}
                         >
                           {/* Actions */}
                           <TableCell>
@@ -332,7 +407,7 @@ export default function SalesPage() {
                             )}
                           </TableCell>
 
-                          {/* Status — first column */}
+                          {/* Status */}
                           <TableCell className="text-center">
                             {isEditing ? (
                               <select
@@ -359,6 +434,43 @@ export default function SalesPage() {
                               >
                                 {sale.status ?? "Pending"}
                               </span>
+                            )}
+                          </TableCell>
+
+                          {/* Payment Link Button */}
+                          <TableCell className="text-center">
+                            {isPaid ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border bg-green-100 text-green-700 border-green-200">
+                                ✓ Paid
+                              </span>
+                            ) : paymentLinkSent ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-blue-100 text-blue-700 border-blue-200">
+                                <Send className="w-3 h-3" /> Sent
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => handleSendPaymentLink(sale)}
+                                disabled={isSendingThis}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors disabled:opacity-50"
+                                style={{
+                                  backgroundColor: BRAND_PINK,
+                                  color: "white",
+                                  borderColor: BRAND_PINK,
+                                }}
+                              >
+                                {isSendingThis ? (
+                                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Send className="w-3 h-3" />
+                                )}
+                                {isSendingThis ? "Sending..." : "Send Link"}
+                              </button>
+                            )}
+                            {/* Red flag if reminder sent and not paid */}
+                            {reminderSent && !isPaid && (
+                              <div className="text-[9px] text-red-600 font-bold mt-0.5">
+                                🔴 Reminder sent
+                              </div>
                             )}
                           </TableCell>
 
@@ -534,4 +646,3 @@ export default function SalesPage() {
     </div>
   );
 }
-  
