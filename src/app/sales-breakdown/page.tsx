@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ChangeEvent, FormEvent, useEffect } from "react";
+import { useState, ChangeEvent, FormEvent, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Upload, CheckCircle2, Lock, AlertTriangle } from "lucide-react";
@@ -204,7 +204,7 @@ function InvalidLinkScreen() {
   );
 }
 
-export default function SalesTrackerPage() {
+function SalesTrackerInner() {
   const searchParams = useSearchParams();
   const refParam = searchParams.get("ref"); // e.g. ?ref=STF-878
 
@@ -221,10 +221,10 @@ export default function SalesTrackerPage() {
     }
 
     supabase
-      .from("milli_staff")
+      .from("milli_candidates")
       .select("full_name, reference_id")
       .eq("reference_id", refParam.toUpperCase())
-      .eq("active", true)
+      .eq("status", "on-boarded")
       .single()
       .then(({ data, error }) => {
         if (!error && data) {
@@ -543,5 +543,28 @@ export default function SalesTrackerPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+// Required: useSearchParams() must be inside a Suspense boundary for Next.js static build
+export default function SalesTrackerPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="flex flex-col items-center gap-4">
+            <div
+              className="w-10 h-10 rounded-full border-4 animate-spin"
+              style={{ borderColor: "#FFB8D7", borderTopColor: "transparent" }}
+            />
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">
+              Loading...
+            </p>
+          </div>
+        </div>
+      }
+    >
+      <SalesTrackerInner />
+    </Suspense>
   );
 }
