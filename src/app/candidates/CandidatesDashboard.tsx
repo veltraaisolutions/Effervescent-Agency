@@ -1270,6 +1270,36 @@ function CandidateModal({
             </div>
           )}
 
+          {/* Sales Form Link */}
+          {candidate.sales_form_url && (
+            <div className="space-y-3">
+              <h4 className={T.cls.sectionHeader}>Sales Form Link</h4>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(candidate.sales_form_url!);
+                  window.alert("Copied!");
+                }}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors text-left"
+                style={{
+                  background: T.bg.surfaceAlt,
+                  borderColor: T.border.default,
+                }}
+              >
+                <span
+                  className="text-xs font-mono break-all"
+                  style={{ color: T.text.secondary }}
+                >
+                  {candidate.sales_form_url}
+                </span>
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ml-3 px-2 py-1 rounded-lg"
+                  style={{ background: T.brand.soft, color: T.brand.primary }}
+                >
+                  Copy
+                </span>
+              </button>
+            </div>
+          )}
           {/* Staff Notes */}
           <div className="space-y-3">
             <h4 className={`${T.cls.sectionHeader} flex items-center gap-2`}>
