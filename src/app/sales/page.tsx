@@ -107,6 +107,11 @@ export default function SalesPage() {
   const [editState, setEditState] = useState<Partial<Sale>>({});
   const [saving, setSaving] = useState(false);
   const [sendingPaymentId, setSendingPaymentId] = useState<number | null>(null);
+  const [sendingAll, setSendingAll] = useState(false);
+  const [sendAllProgress, setSendAllProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
   const fetchSales = useCallback(async () => {
@@ -119,7 +124,6 @@ export default function SalesPage() {
     fetchSales().finally(() => setLoading(false));
   }, [fetchSales]);
 
-  // ── Supabase Realtime subscription ─────────────────────────────────────────
   useEffect(() => {
     const channel = supabase
       .channel("milli_sales_realtime")
@@ -128,7 +132,6 @@ export default function SalesPage() {
         { event: "*", schema: "public", table: "milli_sales" },
         (payload) => {
           if (payload.eventType === "UPDATE") {
-            // Merge the updated row into local state — no full refetch needed
             setSales((prev) =>
               prev.map((s) =>
                 s.id === (payload.new as Sale).id
@@ -138,7 +141,6 @@ export default function SalesPage() {
             );
             setLastRefreshed(new Date());
           } else {
-            // INSERT or DELETE — do a full refetch
             fetchSales();
           }
         },
@@ -220,7 +222,6 @@ export default function SalesPage() {
         })
         .eq("id", sale.id);
 
-      // Realtime will pick this up, but also update local state immediately
       setSales((prev) =>
         prev.map((s) =>
           s.id === sale.id ? { ...s, payment_link_sent: true } : s,
@@ -228,10 +229,44 @@ export default function SalesPage() {
       );
     } catch (err) {
       console.error(err);
-      alert("Failed to send payment link. Please try again.");
+      alert(
+        `Failed to send payment link for ${sale.full_name}. Please try again.`,
+      );
     } finally {
       setSendingPaymentId(null);
     }
+  }
+
+  async function handleSendAllPaymentLinks() {
+    const pending = sales.filter(
+      (s) => s.status !== "Paid" && !s.payment_link_sent,
+    );
+
+    if (pending.length === 0) {
+      alert("No pending sales to send links to.");
+      return;
+    }
+
+    if (
+      !confirm(
+        `Send payment links to ${pending.length} seller${pending.length !== 1 ? "s" : ""}?`,
+      )
+    )
+      return;
+
+    setSendingAll(true);
+    setSendAllProgress({ done: 0, total: pending.length });
+
+    for (let i = 0; i < pending.length; i++) {
+      await handleSendPaymentLink(pending[i]);
+      setSendAllProgress({ done: i + 1, total: pending.length });
+      if (i < pending.length - 1) {
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+
+    setSendingAll(false);
+    setSendAllProgress(null);
   }
 
   function numInput(key: keyof Sale) {
@@ -260,6 +295,9 @@ export default function SalesPage() {
 
   const grouped = groupByMonth(sales);
   const monthKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  const pendingCount = sales.filter(
+    (s) => s.status !== "Paid" && !s.payment_link_sent,
+  ).length;
 
   if (loading) return <p className="p-10 text-gray-400 text-sm">Loading...</p>;
 
@@ -274,15 +312,39 @@ export default function SalesPage() {
             </div>
             <h1 className="text-xl font-bold text-gray-900">Sales Ledger</h1>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <RefreshCw className="w-3 h-3" />
-            <span>
-              Live · updated {lastRefreshed.toLocaleTimeString("en-GB")}
-            </span>
+          <div className="flex items-center gap-4">
+            {pendingCount > 0 && (
+              <button
+                onClick={handleSendAllPaymentLinks}
+                disabled={sendingAll}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-60"
+                style={{ backgroundColor: BRAND_PINK, color: "white" }}
+              >
+                {sendingAll ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    {sendAllProgress
+                      ? `Sending ${sendAllProgress.done}/${sendAllProgress.total}...`
+                      : "Sending..."}
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Send All Payment Links ({pendingCount})
+                  </>
+                )}
+              </button>
+            )}
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <RefreshCw className="w-3 h-3" />
+              <span>
+                Live · updated {lastRefreshed.toLocaleTimeString("en-GB")}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Legend — single unified status */}
+        {/* Legend */}
         <div className="flex items-center gap-3 mb-6 flex-wrap">
           <span className="text-xs text-gray-400 font-medium">
             Payment status:
@@ -399,7 +461,6 @@ export default function SalesPage() {
                         isEditing ? { ...sale, ...editState } : sale,
                       );
                       const cfg = PAYMENT_STATUS_CONFIG[paymentStatus];
-                      const isPaid = paymentStatus === "paid";
                       const isSendingThis = sendingPaymentId === sale.id;
 
                       return (
@@ -438,10 +499,9 @@ export default function SalesPage() {
                           {/* Single unified payment status column — ONE element always */}
                           <TableCell className="text-center">
                             {paymentStatus === "pending" ? (
-                              // Pending: show Send Link button — it IS the status
                               <button
                                 onClick={() => handleSendPaymentLink(sale)}
-                                disabled={isSendingThis}
+                                disabled={isSendingThis || sendingAll}
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors disabled:opacity-50"
                                 style={{
                                   backgroundColor: BRAND_PINK,
