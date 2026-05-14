@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Sale } from "./types";
 import { getSales, updateSale } from "./actions";
 import { T } from "@/styles/theme";
@@ -22,33 +22,43 @@ import {
   Check,
   X,
   Send,
+  RefreshCw,
 } from "lucide-react";
 
 const BRAND_PINK = "#FFB8D7";
 const SEND_STRIPE_WEBHOOK = "https://n8n.veltraai.net/webhook/send-stripe-link";
-const STATUS_OPTIONS = ["Pending", "Paid", "Follow up sent", "Disputed"];
 
-function rowBg(status: string, reminderSent: boolean) {
-  // Red background if reminder sent and not paid — flags for Maddy
-  if (reminderSent && status !== "Paid") return "bg-red-100 hover:bg-red-200";
-  const map: Record<string, string> = {
-    Paid: "bg-green-50 hover:bg-green-100",
-    Pending: "bg-orange-50 hover:bg-orange-100",
-    "Follow up sent": "bg-red-50 hover:bg-red-100",
-    Disputed: "bg-red-50 hover:bg-red-100",
-  };
-  return map[status] ?? "";
+function getPaymentStatus(
+  sale: Sale,
+): "pending" | "link_sent" | "reminder_sent" | "paid" {
+  if (sale.status === "Paid") return "paid";
+  if (sale.reminder_sent) return "reminder_sent";
+  if (sale.payment_link_sent) return "link_sent";
+  return "pending";
 }
 
-function statusBadge(status: string) {
-  const map: Record<string, string> = {
-    Paid: "bg-green-100 text-green-700 border-green-200",
-    Pending: "bg-orange-100 text-orange-700 border-orange-200",
-    "Follow up sent": "bg-red-100 text-red-700 border-red-200",
-    Disputed: "bg-red-100 text-red-700 border-red-200",
-  };
-  return map[status] ?? "bg-gray-100 text-gray-600 border-gray-200";
-}
+const PAYMENT_STATUS_CONFIG = {
+  paid: {
+    label: "Paid",
+    cls: "bg-green-100 text-green-700 border-green-200",
+    rowBg: "bg-green-50 hover:bg-green-100",
+  },
+  reminder_sent: {
+    label: "Reminder Sent",
+    cls: "bg-red-100 text-red-700 border-red-300",
+    rowBg: "bg-red-100 hover:bg-red-200",
+  },
+  link_sent: {
+    label: "Link Sent",
+    cls: "bg-blue-100 text-blue-700 border-blue-200",
+    rowBg: "bg-blue-50 hover:bg-blue-100",
+  },
+  pending: {
+    label: "Pending",
+    cls: "bg-orange-100 text-orange-700 border-orange-200",
+    rowBg: "bg-orange-50 hover:bg-orange-100",
+  },
+};
 
 function mono(val: number | null | undefined) {
   return `£${Number(val ?? 0).toFixed(2)}`;
@@ -97,12 +107,48 @@ export default function SalesPage() {
   const [editState, setEditState] = useState<Partial<Sale>>({});
   const [saving, setSaving] = useState(false);
   const [sendingPaymentId, setSendingPaymentId] = useState<number | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+
+  const fetchSales = useCallback(async () => {
+    const data = await getSales();
+    setSales(data);
+    setLastRefreshed(new Date());
+  }, []);
 
   useEffect(() => {
-    getSales()
-      .then(setSales)
-      .finally(() => setLoading(false));
-  }, []);
+    fetchSales().finally(() => setLoading(false));
+  }, [fetchSales]);
+
+  // ── Supabase Realtime subscription ─────────────────────────────────────────
+  useEffect(() => {
+    const channel = supabase
+      .channel("milli_sales_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "milli_sales" },
+        (payload) => {
+          if (payload.eventType === "UPDATE") {
+            // Merge the updated row into local state — no full refetch needed
+            setSales((prev) =>
+              prev.map((s) =>
+                s.id === (payload.new as Sale).id
+                  ? { ...s, ...(payload.new as Sale) }
+                  : s,
+              ),
+            );
+            setLastRefreshed(new Date());
+          } else {
+            // INSERT or DELETE — do a full refetch
+            fetchSales();
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchSales]);
 
   function startEdit(sale: Sale) {
     setEditingId(sale.id);
@@ -133,19 +179,15 @@ export default function SalesPage() {
     setEditState((prev) => ({ ...prev, [key]: value }));
   }
 
-  // ── Send Payment Link ──────────────────────────────────────────────────────
   async function handleSendPaymentLink(sale: Sale) {
     setSendingPaymentId(sale.id);
-
     try {
-      // Fetch phone + email from milli_candidates by reference_id
       const { data: candidate } = await supabase
         .from("milli_candidates")
         .select("phone, email")
         .eq("reference_id", sale.reference_id)
         .single();
 
-      // Calculate amount: cash + card - deductions
       const amount =
         Number(sale.cash_collected ?? 0) +
         Number(sale.card_amount ?? 0) -
@@ -170,7 +212,6 @@ export default function SalesPage() {
 
       if (!res.ok) throw new Error("Webhook failed");
 
-      // Mark payment_link_sent = true in DB
       await supabase
         .from("milli_sales")
         .update({
@@ -179,7 +220,7 @@ export default function SalesPage() {
         })
         .eq("id", sale.id);
 
-      // Update local UI
+      // Realtime will pick this up, but also update local state immediately
       setSales((prev) =>
         prev.map((s) =>
           s.id === sale.id ? { ...s, payment_link_sent: true } : s,
@@ -225,44 +266,35 @@ export default function SalesPage() {
   return (
     <div className={`${T.cls.page} bg-gray-900 p-6 md:p-10`}>
       <div className="max-w-[1600px] mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-2 bg-pink-50 rounded-lg">
-            <ShoppingCart className="w-5 h-5 text-pink-500" />
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-pink-50 rounded-lg">
+              <ShoppingCart className="w-5 h-5 text-pink-500" />
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">Sales Ledger</h1>
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Sales Ledger</h1>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <RefreshCw className="w-3 h-3" />
+            <span>
+              Live · updated {lastRefreshed.toLocaleTimeString("en-GB")}
+            </span>
+          </div>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-4 mb-6 flex-wrap">
-          <span className="text-xs text-gray-400 font-medium">Status:</span>
-          {[
-            {
-              label: "Paid",
-              cls: "bg-green-100 text-green-700 border-green-200",
-            },
-            {
-              label: "Pending",
-              cls: "bg-orange-100 text-orange-700 border-orange-200",
-            },
-            {
-              label: "Follow up sent",
-              cls: "bg-red-100 text-red-700 border-red-200",
-            },
-            {
-              label: "Disputed",
-              cls: "bg-red-100 text-red-700 border-red-200",
-            },
-          ].map(({ label, cls }) => (
+        {/* Legend — single unified status */}
+        <div className="flex items-center gap-3 mb-6 flex-wrap">
+          <span className="text-xs text-gray-400 font-medium">
+            Payment status:
+          </span>
+          {Object.entries(PAYMENT_STATUS_CONFIG).map(([, cfg]) => (
             <span
-              key={label}
-              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${cls}`}
+              key={cfg.label}
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${cfg.cls}`}
             >
-              {label}
+              {cfg.label}
             </span>
           ))}
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border bg-red-100 text-red-700 border-red-300">
-            🔴 Reminder Sent — Unpaid
-          </span>
         </div>
 
         {monthKeys.length === 0 ? (
@@ -297,10 +329,7 @@ export default function SalesPage() {
                     <TableRow className="border-gray-100 hover:bg-transparent">
                       <TableHead className={T.cls.th}>Actions</TableHead>
                       <TableHead className={T.cls.th + " text-center"}>
-                        Status
-                      </TableHead>
-                      <TableHead className={T.cls.th + " text-center"}>
-                        Payment
+                        Payment Status
                       </TableHead>
                       <TableHead className={T.cls.th}>Date</TableHead>
                       <TableHead className={T.cls.th}>City</TableHead>
@@ -365,19 +394,18 @@ export default function SalesPage() {
                       const diff = Number(
                         liveCalc ? liveCalc.difference : (sale.difference ?? 0),
                       );
-                      const currentStatus =
-                        ((isEditing
-                          ? editState.status
-                          : sale.status) as string) ?? "Pending";
-                      const reminderSent = sale.reminder_sent ?? false;
-                      const paymentLinkSent = sale.payment_link_sent ?? false;
+
+                      const paymentStatus = getPaymentStatus(
+                        isEditing ? { ...sale, ...editState } : sale,
+                      );
+                      const cfg = PAYMENT_STATUS_CONFIG[paymentStatus];
+                      const isPaid = paymentStatus === "paid";
                       const isSendingThis = sendingPaymentId === sale.id;
-                      const isPaid = currentStatus === "Paid";
 
                       return (
                         <TableRow
                           key={sale.id}
-                          className={`${T.cls.tr} ${rowBg(currentStatus, reminderSent)}`}
+                          className={`${T.cls.tr} ${cfg.rowBg}`}
                         >
                           {/* Actions */}
                           <TableCell>
@@ -392,7 +420,7 @@ export default function SalesPage() {
                                 </button>
                                 <button
                                   onClick={cancelEdit}
-                                  className="p-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                                  className="p-1.5 rounded-lg bg-red-100 text-red-500 hover:bg-red-200 transition-colors"
                                 >
                                   <X className="w-3.5 h-3.5" />
                                 </button>
@@ -407,47 +435,10 @@ export default function SalesPage() {
                             )}
                           </TableCell>
 
-                          {/* Status */}
+                          {/* Single unified payment status column — ONE element always */}
                           <TableCell className="text-center">
-                            {isEditing ? (
-                              <select
-                                value={
-                                  (editState.status as string) ?? "Pending"
-                                }
-                                onChange={(e) =>
-                                  editField("status", e.target.value)
-                                }
-                                className="px-2 py-1 rounded-lg border border-pink-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-pink-300"
-                              >
-                                {STATUS_OPTIONS.map((s) => (
-                                  <option
-                                    key={s}
-                                    value={s}
-                                  >
-                                    {s}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span
-                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusBadge(sale.status)}`}
-                              >
-                                {sale.status ?? "Pending"}
-                              </span>
-                            )}
-                          </TableCell>
-
-                          {/* Payment Link Button */}
-                          <TableCell className="text-center">
-                            {isPaid ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border bg-green-100 text-green-700 border-green-200">
-                                ✓ Paid
-                              </span>
-                            ) : paymentLinkSent ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-blue-100 text-blue-700 border-blue-200">
-                                <Send className="w-3 h-3" /> Sent
-                              </span>
-                            ) : (
+                            {paymentStatus === "pending" ? (
+                              // Pending: show Send Link button — it IS the status
                               <button
                                 onClick={() => handleSendPaymentLink(sale)}
                                 disabled={isSendingThis}
@@ -465,12 +456,12 @@ export default function SalesPage() {
                                 )}
                                 {isSendingThis ? "Sending..." : "Send Link"}
                               </button>
-                            )}
-                            {/* Red flag if reminder sent and not paid */}
-                            {reminderSent && !isPaid && (
-                              <div className="text-[9px] text-red-600 font-bold mt-0.5">
-                                🔴 Reminder sent
-                              </div>
+                            ) : (
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${cfg.cls}`}
+                              >
+                                {cfg.label}
+                              </span>
                             )}
                           </TableCell>
 
