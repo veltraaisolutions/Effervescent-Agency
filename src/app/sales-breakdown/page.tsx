@@ -415,7 +415,7 @@ function SalesTrackerInner() {
             <FieldLabel required>Exact Units Sold</FieldLabel>
             <input
               type="number"
-              step="0.01"
+              step="1"
               placeholder="0.00"
               className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium placeholder:text-gray-400"
               value={form.bottles}
@@ -426,7 +426,7 @@ function SalesTrackerInner() {
             <FieldLabel required>Bar Earning (£)</FieldLabel>
             <input
               type="number"
-              step="0.01"
+              step="1"
               placeholder="£0.00"
               className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium placeholder:text-gray-400"
               value={form.barEarning}
@@ -437,7 +437,7 @@ function SalesTrackerInner() {
             <FieldLabel required>Cash (£)</FieldLabel>
             <input
               type="number"
-              step="0.01"
+              step="1"
               placeholder="£0.00"
               className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium placeholder:text-gray-400"
               value={form.cash}
@@ -492,7 +492,7 @@ function SalesTrackerInner() {
             {form.agencySentMoney === "YES" && (
               <input
                 type="number"
-                step="0.01"
+                step="1"
                 placeholder="Amount sent by agency"
                 className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium mt-2"
                 value={form.agencyAmount}
