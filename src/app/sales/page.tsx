@@ -28,6 +28,14 @@ import {
 const BRAND_PINK = "#FFB8D7";
 const SEND_STRIPE_WEBHOOK = "https://n8n.veltraai.net/webhook/send-stripe-link";
 
+// ─── Venue config type ───────────────────────────────────────────────────────
+interface VenueConfig {
+  avg_sales_per_bottle_high: number;
+  shot_price: number;
+  bottle_price: number;
+}
+
+// ─── Payment status helpers ──────────────────────────────────────────────────
 function getPaymentStatus(
   sale: Sale,
 ): "pending" | "link_sent" | "reminder_sent" | "paid" {
@@ -64,19 +72,71 @@ function mono(val: number | null | undefined) {
   return `£${Number(val ?? 0).toFixed(2)}`;
 }
 
-function calcDerived(sale: Partial<Sale>) {
+// ─── Core calculation — implements all 7 steps from Maddison's spec ──────────
+function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   const cash = Number(sale.cash_collected ?? 0);
   const card = Number(sale.card_amount ?? 0);
-  const bar = Number(sale.bar_amount ?? 0);
-  const deductions = Number(sale.deductions ?? 0);
-  const agencyFee = Number(sale.agency_fee ?? 0);
-  const expectedRev = Number(sale.expected_rev ?? 0);
   const total_revenue = cash + card;
-  const seller_comm = (total_revenue - bar) * 0.5;
-  const agency_comm = (total_revenue - bar) * 0.5;
-  const actual_rev = total_revenue - deductions - agencyFee;
-  const difference = expectedRev - actual_rev;
-  return { total_revenue, seller_comm, agency_comm, actual_rev, difference };
+
+  // Step 1 — Expected revenue from venue config
+  const bottlesSold = Number(sale.bottles_sold ?? 0);
+  const avgHigh = Number(venueConfig?.avg_sales_per_bottle_high ?? 0);
+  const expected_rev = bottlesSold * avgHigh;
+
+  let bar_earning = Number(sale.bar_amount ?? 0);
+  let bottles = bottlesSold;
+  let deductions = 0;
+
+  // Step 2 & 3 — 15% threshold check + adjustment
+  if (expected_rev > 0 && total_revenue > expected_rev * 1.15) {
+    const shotPrice = Number(venueConfig?.shot_price ?? 0);
+    const bottlePrice = Number(venueConfig?.bottle_price ?? 0);
+
+    if (shotPrice > 0 && bottlePrice > 0) {
+      const corrected_bottles = total_revenue / shotPrice / 40;
+      const corrected_bar_earning = corrected_bottles * bottlePrice;
+      const bar_earning_difference =
+        corrected_bar_earning - bottlesSold * bottlePrice;
+
+      bar_earning = corrected_bar_earning;
+      bottles = corrected_bottles;
+      deductions += bar_earning_difference;
+    }
+  }
+
+  // Step 4 — Commission
+  const net_revenue = total_revenue - bar_earning;
+  const seller_comm = net_revenue / 2;
+  const agency_comm = net_revenue / 2;
+
+  // Step 5 — Bar payment check
+  if (!sale.paid_bar_directly) {
+    deductions += bar_earning;
+  }
+
+  // Step 6 — Agency sent money check
+  if (sale.agency_sent_money) {
+    deductions += Number(sale.agency_amount ?? 0);
+  }
+
+  // Step 7 — Final agency fee (Stripe link amount)
+  const agency_fee = agency_comm + deductions;
+
+  const actual_rev = total_revenue - deductions;
+  const difference = actual_rev - expected_rev;
+
+  return {
+    total_revenue,
+    seller_comm,
+    agency_comm,
+    actual_rev,
+    difference,
+    deductions,
+    agency_fee,
+    bar_earning,
+    bottles,
+    expected_rev,
+  };
 }
 
 function groupByMonth(sales: Sale[]): Record<string, Sale[]> {
@@ -100,6 +160,7 @@ function formatMonthKey(key: string) {
   });
 }
 
+// ─── Page component ──────────────────────────────────────────────────────────
 export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,11 +174,31 @@ export default function SalesPage() {
     total: number;
   } | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [venueConfigs, setVenueConfigs] = useState<Record<string, VenueConfig>>(
+    {},
+  );
 
   const fetchSales = useCallback(async () => {
     const data = await getSales();
     setSales(data);
     setLastRefreshed(new Date());
+
+    // Fetch venue config alongside sales
+    const { data: configs } = await supabase
+      .from("venue_config")
+      .select("venue, avg_sales_per_bottle_high, shot_price, bottle_price");
+
+    if (configs) {
+      const map: Record<string, VenueConfig> = {};
+      configs.forEach((c: { venue: string } & VenueConfig) => {
+        map[c.venue] = {
+          avg_sales_per_bottle_high: c.avg_sales_per_bottle_high,
+          shot_price: c.shot_price,
+          bottle_price: c.bottle_price,
+        };
+      });
+      setVenueConfigs(map);
+    }
   }, []);
 
   useEffect(() => {
@@ -190,10 +271,10 @@ export default function SalesPage() {
         .eq("reference_id", sale.reference_id)
         .single();
 
-      const amount =
-        Number(sale.cash_collected ?? 0) +
-        Number(sale.card_amount ?? 0) -
-        Number(sale.deductions ?? 0);
+      // Use derived agency_fee as the Stripe amount
+      const venueConfig = venueConfigs[sale.venue] ?? null;
+      const derived = calcDerived(sale, venueConfig);
+      const amount = Number(derived.agency_fee.toFixed(2));
 
       const payload = {
         sale_id: sale.id,
@@ -201,7 +282,7 @@ export default function SalesPage() {
         reference_id: sale.reference_id,
         phone: candidate?.phone ?? null,
         email: candidate?.email ?? null,
-        amount: Number(amount.toFixed(2)),
+        amount,
         date_of_shift: sale.date_of_shift,
         venue: sale.venue,
       };
@@ -450,9 +531,18 @@ export default function SalesPage() {
                   <TableBody>
                     {grouped[monthKey].map((sale) => {
                       const isEditing = editingId === sale.id;
+
+                      // Resolve venue config — use edited venue if in edit mode
+                      const venueKey = isEditing
+                        ? (editState.venue ?? sale.venue)
+                        : sale.venue;
+                      const venueConfig = venueConfigs[venueKey] ?? null;
+
+                      // Live recalculation while editing; null when not editing
                       const liveCalc = isEditing
-                        ? calcDerived(editState)
+                        ? calcDerived(editState, venueConfig)
                         : null;
+
                       const diff = Number(
                         liveCalc ? liveCalc.difference : (sale.difference ?? 0),
                       );
@@ -496,7 +586,7 @@ export default function SalesPage() {
                             )}
                           </TableCell>
 
-                          {/* Single unified payment status column — ONE element always */}
+                          {/* Payment status */}
                           <TableCell className="text-center">
                             {paymentStatus === "pending" ? (
                               <button
@@ -555,12 +645,18 @@ export default function SalesPage() {
                           <TableCell className="text-center text-gray-500 font-mono">
                             {isEditing
                               ? numInput("bottles_sold")
-                              : sale.bottles_sold}
+                              : liveCalc
+                                ? liveCalc.bottles.toFixed(2)
+                                : sale.bottles_sold}
                           </TableCell>
                           <TableCell className="text-right font-mono text-gray-800">
                             {isEditing
                               ? numInput("bar_amount")
-                              : mono(sale.bar_amount)}
+                              : mono(
+                                  liveCalc
+                                    ? liveCalc.bar_earning
+                                    : sale.bar_amount,
+                                )}
                           </TableCell>
                           <TableCell className="text-right font-mono text-gray-800">
                             {isEditing
@@ -594,19 +690,21 @@ export default function SalesPage() {
                             )}
                           </TableCell>
                           <TableCell className="text-right font-mono text-red-500">
-                            {isEditing
-                              ? numInput("deductions")
-                              : mono(sale.deductions)}
+                            {mono(
+                              liveCalc ? liveCalc.deductions : sale.deductions,
+                            )}
                           </TableCell>
                           <TableCell className="text-right font-mono text-orange-600">
-                            {isEditing
-                              ? numInput("agency_fee")
-                              : mono(sale.agency_fee)}
+                            {mono(
+                              liveCalc ? liveCalc.agency_fee : sale.agency_fee,
+                            )}
                           </TableCell>
                           <TableCell className="text-right font-mono text-gray-500">
-                            {isEditing
-                              ? numInput("expected_rev")
-                              : mono(sale.expected_rev)}
+                            {mono(
+                              liveCalc
+                                ? liveCalc.expected_rev
+                                : sale.expected_rev,
+                            )}
                           </TableCell>
                           <TableCell className="text-right font-mono text-gray-800">
                             {mono(
