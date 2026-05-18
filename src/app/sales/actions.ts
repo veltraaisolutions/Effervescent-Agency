@@ -3,19 +3,13 @@
 import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 import { Sale } from "./types";
-
-interface VenueConfig {
-  avg_sales_per_bottle_high: number;
-  shot_price: number;
-  bottle_price: number;
-}
+import { VENUE_CONFIG, VenueConfig } from "@/lib/venueConfig";
 
 function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   const cash = Number(sale.cash_collected ?? 0);
   const card = Number(sale.card_amount ?? 0);
   const total_revenue = cash + card;
 
-  // Step 1 — Expected revenue from venue config
   const bottlesSold = Number(sale.bottles_sold ?? 0);
   const avgHigh = Number(venueConfig?.avg_sales_per_bottle_high ?? 0);
   const expected_rev = bottlesSold * avgHigh;
@@ -24,41 +18,28 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   let bottles = bottlesSold;
   let deductions = 0;
 
-  // Step 2 & 3 — 15% threshold check + adjustment
   if (expected_rev > 0 && total_revenue > expected_rev * 1.15) {
     const shotPrice = Number(venueConfig?.shot_price ?? 0);
     const bottlePrice = Number(venueConfig?.bottle_price ?? 0);
-
     if (shotPrice > 0 && bottlePrice > 0) {
       const corrected_bottles = total_revenue / shotPrice / 40;
       const corrected_bar_earning = corrected_bottles * bottlePrice;
       const bar_earning_difference =
         corrected_bar_earning - bottlesSold * bottlePrice;
-
       bar_earning = corrected_bar_earning;
       bottles = corrected_bottles;
       deductions += bar_earning_difference;
     }
   }
 
-  // Step 4 — Commission
   const net_revenue = total_revenue - bar_earning;
   const seller_comm = net_revenue / 2;
   const agency_comm = net_revenue / 2;
 
-  // Step 5 — Bar payment check
-  if (!sale.paid_bar_directly) {
-    deductions += bar_earning;
-  }
+  if (!sale.paid_bar_directly) deductions += bar_earning;
+  if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
 
-  // Step 6 — Agency sent money check
-  if (sale.agency_sent_money) {
-    deductions += Number(sale.agency_amount ?? 0);
-  }
-
-  // Step 7 — Final agency fee
   const agency_fee = agency_comm + deductions;
-
   const actual_rev = total_revenue - deductions;
   const difference = actual_rev - expected_rev;
 
@@ -89,8 +70,9 @@ export async function getSales(): Promise<Sale[]> {
 export async function updateSale(
   id: number,
   editState: Partial<Sale>,
-  venueConfig?: VenueConfig | null,
 ): Promise<Sale> {
+  // Resolve venue config from central file
+  const venueConfig = VENUE_CONFIG[editState.venue ?? ""] ?? null;
   const derived = calcDerived(editState, venueConfig);
 
   const payload = {
@@ -128,7 +110,6 @@ export async function updateSale(
     .single();
 
   if (error) throw new Error(error.message);
-
   revalidatePath("/sales");
   return data as Sale;
 }
