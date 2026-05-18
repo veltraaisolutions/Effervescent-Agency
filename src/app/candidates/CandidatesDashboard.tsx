@@ -311,6 +311,7 @@ function EditProfileModal({
       candidate.emergency_contact_relationship ?? "",
     bank_account_number: candidate.bank_account_number ?? "",
     bank_sort_code: candidate.bank_sort_code ?? "",
+    square_access_token: candidate.square_access_token ?? "",
   });
 
   function handleChange(field: keyof typeof form, value: string) {
@@ -350,6 +351,7 @@ function EditProfileModal({
     { label: "Emergency Relationship", key: "emergency_contact_relationship" },
     { label: "Bank Account Number", key: "bank_account_number" },
     { label: "Sort Code", key: "bank_sort_code" },
+    { label: "Square Access Token", key: "square_access_token" },
   ];
 
   return (
@@ -1357,6 +1359,10 @@ function CandidateModal({
             <InfoRow
               label="Date of Birth"
               value={candidate.dob ? formatDate(candidate.dob) : undefined}
+            />
+            <InfoRow
+              label="Square Access Token"
+              value={candidate.square_access_token}
             />
           </Section>
 
