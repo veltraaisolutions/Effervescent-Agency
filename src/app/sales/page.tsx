@@ -35,6 +35,185 @@ interface VenueConfig {
   bottle_price: number;
 }
 
+// ─── Venue config data (update here when prices change) ─────────────────────
+const VENUE_CONFIG: Record<string, VenueConfig> = {
+  "2Funky": {
+    shot_price: 3.5,
+    bottle_price: 70.0,
+    avg_sales_per_bottle_high: 140.0,
+  },
+  "Binks Yard": {
+    shot_price: 5.0,
+    bottle_price: 85.0,
+    avg_sales_per_bottle_high: 200.0,
+  },
+  Bounty: {
+    shot_price: 3.5,
+    bottle_price: 70.0,
+    avg_sales_per_bottle_high: 140.0,
+  },
+  Cavendish: {
+    shot_price: 4.0,
+    bottle_price: 70.0,
+    avg_sales_per_bottle_high: 160.0,
+  },
+  Crib: {
+    shot_price: 5.5,
+    bottle_price: 80.0,
+    avg_sales_per_bottle_high: 220.0,
+  },
+  Cucamara: {
+    shot_price: 3.0,
+    bottle_price: 65.0,
+    avg_sales_per_bottle_high: 120.0,
+  },
+  "Fat Cat Derby": {
+    shot_price: 3.0,
+    bottle_price: 65.0,
+    avg_sales_per_bottle_high: 120.0,
+  },
+  Ghost: {
+    shot_price: 3.0,
+    bottle_price: 60.0,
+    avg_sales_per_bottle_high: 120.0,
+  },
+  "Grumpy Monkey": {
+    shot_price: 4.0,
+    bottle_price: 70.0,
+    avg_sales_per_bottle_high: 160.0,
+  },
+  Hukka: {
+    shot_price: 5.0,
+    bottle_price: 100.0,
+    avg_sales_per_bottle_high: 200.0,
+  },
+  Icon: {
+    shot_price: 3.0,
+    bottle_price: 65.0,
+    avg_sales_per_bottle_high: 120.0,
+  },
+  "Icon BAR CRAW": {
+    shot_price: 2.0,
+    bottle_price: 40.0,
+    avg_sales_per_bottle_high: 80.0,
+  },
+  "The Camden": {
+    shot_price: 8.5,
+    bottle_price: 180.0,
+    avg_sales_per_bottle_high: 340.0,
+  },
+  "Lace Bar": {
+    shot_price: 3.5,
+    bottle_price: 70.0,
+    avg_sales_per_bottle_high: 140.0,
+  },
+  "Loft Bar": {
+    shot_price: 4.0,
+    bottle_price: 80.0,
+    avg_sales_per_bottle_high: 160.0,
+  },
+  "Mixing House": {
+    shot_price: 3.0,
+    bottle_price: 65.0,
+    avg_sales_per_bottle_high: 120.0,
+  },
+  "The Nest": {
+    shot_price: 3.5,
+    bottle_price: 70.0,
+    avg_sales_per_bottle_high: 140.0,
+  },
+  "New Foresters": {
+    shot_price: 4.0,
+    bottle_price: 70.0,
+    avg_sales_per_bottle_high: 160.0,
+  },
+  "Oz Bar": {
+    shot_price: 3.0,
+    bottle_price: 65.0,
+    avg_sales_per_bottle_high: 120.0,
+  },
+  "Pitcher & Piano": {
+    shot_price: 5.0,
+    bottle_price: 100.0,
+    avg_sales_per_bottle_high: 200.0,
+  },
+  Popworld: {
+    shot_price: 3.5,
+    bottle_price: 70.0,
+    avg_sales_per_bottle_high: 140.0,
+  },
+  "Revolution South": {
+    shot_price: 3.5,
+    bottle_price: 50.0,
+    avg_sales_per_bottle_high: 140.0,
+  },
+  "Revs de cuba": {
+    shot_price: 4.0,
+    bottle_price: 70.0,
+    avg_sales_per_bottle_high: 160.0,
+  },
+  "Route One": {
+    shot_price: 3.0,
+    bottle_price: 65.0,
+    avg_sales_per_bottle_high: 120.0,
+  },
+  "Secret Garden": {
+    shot_price: 3.5,
+    bottle_price: 70.0,
+    avg_sales_per_bottle_high: 140.0,
+  },
+  "Secret vault": {
+    shot_price: 4.0,
+    bottle_price: 70.0,
+    avg_sales_per_bottle_high: 160.0,
+  },
+  "Steins Derby": {
+    shot_price: 4.0,
+    bottle_price: 50.0,
+    avg_sales_per_bottle_high: 160.0,
+  },
+  "The Kings": {
+    shot_price: 3.0,
+    bottle_price: 55.0,
+    avg_sales_per_bottle_high: 120.0,
+  },
+  "The Mail Room": {
+    shot_price: 6.0,
+    bottle_price: 100.0,
+    avg_sales_per_bottle_high: 240.0,
+  },
+  "Trent Navigation": {
+    shot_price: 4.5,
+    bottle_price: 80.0,
+    avg_sales_per_bottle_high: 180.0,
+  },
+  Tunnel: {
+    shot_price: 3.0,
+    bottle_price: 65.0,
+    avg_sales_per_bottle_high: 120.0,
+  },
+  "Vat & Fiddle": {
+    shot_price: 3.0,
+    bottle_price: 60.0,
+    avg_sales_per_bottle_high: 120.0,
+  },
+  Vibe: {
+    shot_price: 6.0,
+    bottle_price: 60.0,
+    avg_sales_per_bottle_high: 240.0,
+  },
+  XOYO: {
+    shot_price: 4.5,
+    bottle_price: 78.75,
+    avg_sales_per_bottle_high: 180.0,
+  },
+  "Boxpark Liverpool": {
+    shot_price: 0.0,
+    bottle_price: 100.0,
+    avg_sales_per_bottle_high: 0.0,
+  },
+};
+
 // ─── Payment status helpers ──────────────────────────────────────────────────
 function getPaymentStatus(
   sale: Sale,
@@ -73,7 +252,10 @@ function mono(val: number | null | undefined) {
 }
 
 // ─── Core calculation — implements all 7 steps from Maddison's spec ──────────
-function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
+export function calcDerived(
+  sale: Partial<Sale>,
+  venueConfig?: VenueConfig | null,
+) {
   const cash = Number(sale.cash_collected ?? 0);
   const card = Number(sale.card_amount ?? 0);
   const total_revenue = cash + card;
@@ -174,31 +356,11 @@ export default function SalesPage() {
     total: number;
   } | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-  const [venueConfigs, setVenueConfigs] = useState<Record<string, VenueConfig>>(
-    {},
-  );
 
   const fetchSales = useCallback(async () => {
     const data = await getSales();
     setSales(data);
     setLastRefreshed(new Date());
-
-    // Fetch venue config alongside sales
-    const { data: configs } = await supabase
-      .from("venue_config")
-      .select("venue, avg_sales_per_bottle_high, shot_price, bottle_price");
-
-    if (configs) {
-      const map: Record<string, VenueConfig> = {};
-      configs.forEach((c: { venue: string } & VenueConfig) => {
-        map[c.venue] = {
-          avg_sales_per_bottle_high: c.avg_sales_per_bottle_high,
-          shot_price: c.shot_price,
-          bottle_price: c.bottle_price,
-        };
-      });
-      setVenueConfigs(map);
-    }
   }, []);
 
   useEffect(() => {
@@ -247,7 +409,8 @@ export default function SalesPage() {
     if (!editingId) return;
     setSaving(true);
     try {
-      const updated = await updateSale(editingId, editState);
+      const venueConfig = VENUE_CONFIG[editState.venue ?? ""] ?? null;
+      const updated = await updateSale(editingId, editState, venueConfig);
       setSales((prev) => prev.map((s) => (s.id === editingId ? updated : s)));
       setEditingId(null);
       setEditState({});
@@ -272,7 +435,7 @@ export default function SalesPage() {
         .single();
 
       // Use derived agency_fee as the Stripe amount
-      const venueConfig = venueConfigs[sale.venue] ?? null;
+      const venueConfig = VENUE_CONFIG[sale.venue] ?? null;
       const derived = calcDerived(sale, venueConfig);
       const amount = Number(derived.agency_fee.toFixed(2));
 
@@ -532,20 +695,19 @@ export default function SalesPage() {
                     {grouped[monthKey].map((sale) => {
                       const isEditing = editingId === sale.id;
 
-                      // Resolve venue config — use edited venue if in edit mode
+                      // Resolve venue config from in-code map
                       const venueKey = isEditing
                         ? (editState.venue ?? sale.venue)
                         : sale.venue;
-                      const venueConfig = venueConfigs[venueKey] ?? null;
+                      const venueConfig = VENUE_CONFIG[venueKey] ?? null;
 
-                      // Live recalculation while editing; null when not editing
-                      const liveCalc = isEditing
-                        ? calcDerived(editState, venueConfig)
-                        : null;
-
-                      const diff = Number(
-                        liveCalc ? liveCalc.difference : (sale.difference ?? 0),
+                      // Always recalculate — live during edit, from stored data otherwise
+                      const liveCalc = calcDerived(
+                        isEditing ? editState : sale,
+                        venueConfig,
                       );
+
+                      const diff = Number(liveCalc.difference ?? 0);
 
                       const paymentStatus = getPaymentStatus(
                         isEditing ? { ...sale, ...editState } : sale,
@@ -645,18 +807,12 @@ export default function SalesPage() {
                           <TableCell className="text-center text-gray-500 font-mono">
                             {isEditing
                               ? numInput("bottles_sold")
-                              : liveCalc
-                                ? liveCalc.bottles.toFixed(2)
-                                : sale.bottles_sold}
+                              : liveCalc.bottles.toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right font-mono text-gray-800">
                             {isEditing
                               ? numInput("bar_amount")
-                              : mono(
-                                  liveCalc
-                                    ? liveCalc.bar_earning
-                                    : sale.bar_amount,
-                                )}
+                              : mono(liveCalc.bar_earning)}
                           </TableCell>
                           <TableCell className="text-right font-mono text-gray-800">
                             {isEditing
@@ -669,47 +825,25 @@ export default function SalesPage() {
                               : mono(sale.cash_collected)}
                           </TableCell>
                           <TableCell className="text-right font-mono font-bold text-gray-900">
-                            {mono(
-                              liveCalc
-                                ? liveCalc.total_revenue
-                                : sale.total_revenue,
-                            )}
+                            {mono(liveCalc.total_revenue)}
                           </TableCell>
                           <TableCell className="text-right font-mono text-purple-700">
-                            {mono(
-                              liveCalc
-                                ? liveCalc.seller_comm
-                                : sale.seller_comm,
-                            )}
+                            {mono(liveCalc.seller_comm)}
                           </TableCell>
                           <TableCell className="text-right font-mono text-blue-700">
-                            {mono(
-                              liveCalc
-                                ? liveCalc.agency_comm
-                                : sale.agency_comm,
-                            )}
+                            {mono(liveCalc.agency_comm)}
                           </TableCell>
                           <TableCell className="text-right font-mono text-red-500">
-                            {mono(
-                              liveCalc ? liveCalc.deductions : sale.deductions,
-                            )}
+                            {mono(liveCalc.deductions)}
                           </TableCell>
                           <TableCell className="text-right font-mono text-orange-600">
-                            {mono(
-                              liveCalc ? liveCalc.agency_fee : sale.agency_fee,
-                            )}
+                            {mono(liveCalc.agency_fee)}
                           </TableCell>
                           <TableCell className="text-right font-mono text-gray-500">
-                            {mono(
-                              liveCalc
-                                ? liveCalc.expected_rev
-                                : sale.expected_rev,
-                            )}
+                            {mono(liveCalc.expected_rev)}
                           </TableCell>
                           <TableCell className="text-right font-mono text-gray-800">
-                            {mono(
-                              liveCalc ? liveCalc.actual_rev : sale.actual_rev,
-                            )}
+                            {mono(liveCalc.actual_rev)}
                           </TableCell>
                           <TableCell
                             className={`text-right font-mono font-bold ${diff < 0 ? "text-red-600" : "text-green-600"}`}
