@@ -523,6 +523,11 @@ export default function SalesPage() {
 
                       const diff = Number(liveCalc.difference ?? 0);
 
+                      // Flag if 15% threshold was triggered
+                      const isFlagged =
+                        liveCalc.expected_rev > 0 &&
+                        liveCalc.total_revenue > liveCalc.expected_rev * 1.15;
+
                       const paymentStatus = getPaymentStatus(
                         isEditing ? { ...sale, ...editState } : sale,
                       );
@@ -532,7 +537,7 @@ export default function SalesPage() {
                       return (
                         <TableRow
                           key={sale.id}
-                          className={`${T.cls.tr} ${cfg.rowBg}`}
+                          className={`${T.cls.tr} ${isFlagged ? "bg-yellow-100 hover:bg-yellow-200 border-l-4 border-yellow-400" : cfg.rowBg}`}
                         >
                           {/* Actions */}
                           <TableCell>
