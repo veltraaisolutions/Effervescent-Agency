@@ -537,7 +537,7 @@ export default function SalesPage() {
                       return (
                         <TableRow
                           key={sale.id}
-                          className={`${T.cls.tr} ${isFlagged ? "bg-yellow-100 hover:bg-yellow-200 border-l-4 border-yellow-400" : cfg.rowBg}`}
+                          className={`${T.cls.tr} ${isFlagged ? "bg-yellow-200 hover:bg-yellow-300 border-l-4 border-yellow-500" : cfg.rowBg}`}
                         >
                           {/* Actions */}
                           <TableCell>
@@ -569,6 +569,11 @@ export default function SalesPage() {
 
                           {/* Payment status */}
                           <TableCell className="text-center">
+                            {isFlagged && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-yellow-900 border border-yellow-500 mb-1 mr-1">
+                                ⚠️
+                              </span>
+                            )}
                             {paymentStatus === "pending" ? (
                               <button
                                 onClick={() => handleSendPaymentLink(sale)}
