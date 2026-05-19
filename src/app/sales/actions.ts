@@ -14,23 +14,9 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   const avgHigh = Number(venueConfig?.avg_sales_per_bottle_high ?? 0);
   const expected_rev = bottlesSold * avgHigh;
 
-  let bar_earning = Number(sale.bar_amount ?? 0);
-  let bottles = bottlesSold;
+  const bar_earning = Number(sale.bar_amount ?? 0);
+  const bottles = bottlesSold;
   let deductions = 0;
-
-  if (expected_rev > 0 && total_revenue > expected_rev * 1.15) {
-    const shotPrice = Number(venueConfig?.shot_price ?? 0);
-    const bottlePrice = Number(venueConfig?.bottle_price ?? 0);
-    if (shotPrice > 0 && bottlePrice > 0) {
-      const corrected_bottles = total_revenue / shotPrice / 40;
-      const corrected_bar_earning = corrected_bottles * bottlePrice;
-      const bar_earning_difference =
-        corrected_bar_earning - bottlesSold * bottlePrice;
-      bar_earning = corrected_bar_earning;
-      bottles = corrected_bottles;
-      deductions += bar_earning_difference;
-    }
-  }
 
   const net_revenue = total_revenue - bar_earning;
   const seller_comm = Math.max(0, net_revenue / 2);
@@ -40,7 +26,7 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
 
   const agency_fee = agency_comm + deductions;
-  const actual_rev = total_revenue; // cash + card
+  const actual_rev = total_revenue;
   const difference = actual_rev - expected_rev;
 
   return {
@@ -71,7 +57,6 @@ export async function updateSale(
   id: number,
   editState: Partial<Sale>,
 ): Promise<Sale> {
-  // Resolve venue config from central file
   const venueConfig = VENUE_CONFIG[editState.venue ?? ""] ?? null;
   const derived = calcDerived(editState, venueConfig);
 

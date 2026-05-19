@@ -67,7 +67,7 @@ function mono(val: number | null | undefined) {
   return `£${Number(val ?? 0).toFixed(2)}`;
 }
 
-// ─── Core calculation — implements all 7 steps from Maddison's spec ──────────
+// ─── Core calculation — no correction, just flag ─────────────────────────────
 export function calcDerived(
   sale: Partial<Sale>,
   venueConfig?: VenueConfig | null,
@@ -76,46 +76,28 @@ export function calcDerived(
   const card = Number(sale.card_amount ?? 0);
   const total_revenue = cash + card;
 
-  // Step 1 — Expected revenue from venue config
   const bottlesSold = Number(sale.bottles_sold ?? 0);
   const avgHigh = Number(venueConfig?.avg_sales_per_bottle_high ?? 0);
   const expected_rev = bottlesSold * avgHigh;
 
-  let bar_earning = Number(sale.bar_amount ?? 0);
-  let bottles = bottlesSold;
+  const bar_earning = Number(sale.bar_amount ?? 0);
+  const bottles = bottlesSold;
   let deductions = 0;
 
-  // Step 2 & 3 — 15% threshold check + adjustment
-  if (expected_rev > 0 && total_revenue > expected_rev * 1.15) {
-    const shotPrice = Number(venueConfig?.shot_price ?? 0);
-    const bottlePrice = Number(venueConfig?.bottle_price ?? 0);
-
-    if (shotPrice > 0 && bottlePrice > 0) {
-      const corrected_bottles = total_revenue / shotPrice / 40;
-      const corrected_bar_earning = corrected_bottles * bottlePrice;
-      const bar_earning_difference =
-        corrected_bar_earning - bottlesSold * bottlePrice;
-
-      bar_earning = corrected_bar_earning;
-      bottles = corrected_bottles;
-      deductions += bar_earning_difference;
-    }
-  }
-
-  // Step 4 — Commission
+  // Commission
   const net_revenue = total_revenue - bar_earning;
   const seller_comm = Math.max(0, net_revenue / 2);
   const agency_comm = Math.max(0, net_revenue / 2);
 
-  // Step 5 — Bar payment check
+  // Bar payment check
   if (!sale.paid_bar_directly) deductions += bar_earning;
 
-  // Step 6 — Agency sent money check
+  // Agency sent money check
   if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
 
-  // Step 7 — Final agency fee (Stripe link amount)
+  // Final agency fee
   const agency_fee = agency_comm + deductions;
-  const actual_rev = total_revenue; // cash + card
+  const actual_rev = total_revenue;
   const difference = actual_rev - expected_rev;
 
   return {
@@ -168,9 +150,10 @@ export default function SalesPage() {
   } | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
-  // Filters
+  // ─── Filters ────────────────────────────────────────────────────────────────
   const [filterVenue, setFilterVenue] = useState<string>("");
   const [filterName, setFilterName] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<string>("");
 
   const fetchSales = useCallback(async () => {
     const data = await getSales();
@@ -210,13 +193,15 @@ export default function SalesPage() {
     };
   }, [fetchSales]);
 
-  // Derived filtered + grouped data
+  // ─── Filtered + grouped data ─────────────────────────────────────────────────
   const filteredSales = sales.filter((s) => {
     const venueMatch = filterVenue === "" || s.venue === filterVenue;
     const nameMatch =
       filterName === "" ||
       s.full_name.toLowerCase().includes(filterName.toLowerCase());
-    return venueMatch && nameMatch;
+    const statusMatch =
+      filterStatus === "" || getPaymentStatus(s) === filterStatus;
+    return venueMatch && nameMatch && statusMatch;
   });
 
   const uniqueVenues = Array.from(new Set(sales.map((s) => s.venue))).sort();
@@ -444,11 +429,12 @@ export default function SalesPage() {
           </select>
 
           {/* Clear filters */}
-          {(filterVenue || filterName) && (
+          {(filterVenue || filterName || filterStatus) && (
             <button
               onClick={() => {
                 setFilterVenue("");
                 setFilterName("");
+                setFilterStatus("");
               }}
               className="px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-gray-900 transition-colors"
             >
@@ -456,17 +442,26 @@ export default function SalesPage() {
             </button>
           )}
 
-          <div className="ml-auto flex items-center gap-3 flex-wrap">
-            <span className="text-xs text-gray-400 font-medium">
-              Payment status:
-            </span>
-            {Object.entries(PAYMENT_STATUS_CONFIG).map(([, cfg]) => (
-              <span
-                key={cfg.label}
-                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${cfg.cls}`}
+          {/* Clickable payment status filters */}
+          <div className="ml-auto flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-400 font-medium">Filter:</span>
+            {(
+              Object.entries(PAYMENT_STATUS_CONFIG) as [
+                string,
+                (typeof PAYMENT_STATUS_CONFIG)[keyof typeof PAYMENT_STATUS_CONFIG],
+              ][]
+            ).map(([key, cfg]) => (
+              <button
+                key={key}
+                onClick={() => setFilterStatus(filterStatus === key ? "" : key)}
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${cfg.cls} ${
+                  filterStatus === key
+                    ? "ring-2 ring-offset-1 ring-gray-400 scale-105"
+                    : "opacity-70 hover:opacity-100"
+                }`}
               >
                 {cfg.label}
-              </span>
+              </button>
             ))}
           </div>
         </div>
@@ -503,7 +498,7 @@ export default function SalesPage() {
                     <TableRow className="border-gray-100 hover:bg-transparent">
                       <TableHead className={T.cls.th}>Actions</TableHead>
                       <TableHead className={T.cls.th + " text-center"}>
-                        Payment Status
+                        Status
                       </TableHead>
                       <TableHead className={T.cls.th}>Date</TableHead>
                       <TableHead className={T.cls.th}>City</TableHead>
@@ -602,6 +597,7 @@ export default function SalesPage() {
                                 : cfg.rowBg
                           }`}
                         >
+                          {/* Actions */}
                           <TableCell>
                             {isEditing ? (
                               <div className="flex gap-1">
@@ -629,6 +625,7 @@ export default function SalesPage() {
                             )}
                           </TableCell>
 
+                          {/* Status cell */}
                           <TableCell className="text-center">
                             {discrepancyStatus === "over" && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-yellow-900 border border-yellow-500 mb-1 block">
