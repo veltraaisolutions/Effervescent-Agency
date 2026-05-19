@@ -103,8 +103,8 @@ export function calcDerived(
 
   // Step 4 — Commission
   const net_revenue = total_revenue - bar_earning;
-  const seller_comm = net_revenue / 2;
-  const agency_comm = net_revenue / 2;
+  const seller_comm = Math.max(0, net_revenue / 2);
+  const agency_comm = Math.max(0, net_revenue / 2);
 
   // Step 5 — Bar payment check
   if (!sale.paid_bar_directly) {

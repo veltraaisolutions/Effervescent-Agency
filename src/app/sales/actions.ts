@@ -33,8 +33,8 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   }
 
   const net_revenue = total_revenue - bar_earning;
-  const seller_comm = net_revenue / 2;
-  const agency_comm = net_revenue / 2;
+  const seller_comm = Math.max(0, net_revenue / 2);
+  const agency_comm = Math.max(0, net_revenue / 2);
 
   if (!sale.paid_bar_directly) deductions += bar_earning;
   if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
