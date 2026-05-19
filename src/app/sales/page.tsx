@@ -575,9 +575,15 @@ export default function SalesPage() {
 
                       const diff = Number(liveCalc.difference ?? 0);
 
-                      const isFlagged =
-                        liveCalc.expected_rev > 0 &&
-                        liveCalc.total_revenue > liveCalc.expected_rev * 1.15;
+                      const discrepancyStatus =
+                        liveCalc.expected_rev === 0
+                          ? "none"
+                          : liveCalc.actual_rev < liveCalc.expected_rev * 0.85
+                            ? "under"
+                            : liveCalc.actual_rev >=
+                                liveCalc.expected_rev * 1.15
+                              ? "over"
+                              : "within";
 
                       const paymentStatus = getPaymentStatus(
                         isEditing ? { ...sale, ...editState } : sale,
@@ -588,7 +594,13 @@ export default function SalesPage() {
                       return (
                         <TableRow
                           key={sale.id}
-                          className={`${T.cls.tr} ${isFlagged ? "bg-yellow-200 hover:bg-yellow-300 border-l-4 border-yellow-500" : cfg.rowBg}`}
+                          className={`${T.cls.tr} ${
+                            discrepancyStatus === "over"
+                              ? "bg-yellow-200 hover:bg-yellow-300 border-l-4 border-yellow-500"
+                              : discrepancyStatus === "under"
+                                ? "bg-red-200 hover:bg-red-300 border-l-4 border-red-500"
+                                : cfg.rowBg
+                          }`}
                         >
                           <TableCell>
                             {isEditing ? (
@@ -618,9 +630,19 @@ export default function SalesPage() {
                           </TableCell>
 
                           <TableCell className="text-center">
-                            {isFlagged && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-yellow-900 border border-yellow-500 mb-1 mr-1">
-                                ⚠️
+                            {discrepancyStatus === "over" && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-yellow-900 border border-yellow-500 mb-1 block">
+                                ⚠️ Over
+                              </span>
+                            )}
+                            {discrepancyStatus === "under" && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-red-400 text-white border border-red-500 mb-1 block">
+                                ⬇️ Under
+                              </span>
+                            )}
+                            {discrepancyStatus === "within" && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-green-100 text-green-700 border border-green-300 mb-1 block">
+                                ✓ Range
                               </span>
                             )}
                             {paymentStatus === "pending" ? (
