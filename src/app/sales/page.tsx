@@ -24,6 +24,7 @@ import {
   X,
   Send,
   RefreshCw,
+  Search,
 } from "lucide-react";
 
 const BRAND_PINK = "#FFB8D7";
@@ -107,18 +108,13 @@ export function calcDerived(
   const agency_comm = Math.max(0, net_revenue / 2);
 
   // Step 5 — Bar payment check
-  if (!sale.paid_bar_directly) {
-    deductions += bar_earning;
-  }
+  if (!sale.paid_bar_directly) deductions += bar_earning;
 
   // Step 6 — Agency sent money check
-  if (sale.agency_sent_money) {
-    deductions += Number(sale.agency_amount ?? 0);
-  }
+  if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
 
   // Step 7 — Final agency fee (Stripe link amount)
   const agency_fee = agency_comm + deductions;
-
   const actual_rev = total_revenue; // cash + card
   const difference = actual_rev - expected_rev;
 
@@ -172,6 +168,10 @@ export default function SalesPage() {
   } | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
+  // Filters
+  const [filterVenue, setFilterVenue] = useState<string>("");
+  const [filterName, setFilterName] = useState<string>("");
+
   const fetchSales = useCallback(async () => {
     const data = await getSales();
     setSales(data);
@@ -209,6 +209,17 @@ export default function SalesPage() {
       supabase.removeChannel(channel);
     };
   }, [fetchSales]);
+
+  // Derived filtered + grouped data
+  const filteredSales = sales.filter((s) => {
+    const venueMatch = filterVenue === "" || s.venue === filterVenue;
+    const nameMatch =
+      filterName === "" ||
+      s.full_name.toLowerCase().includes(filterName.toLowerCase());
+    return venueMatch && nameMatch;
+  });
+
+  const uniqueVenues = Array.from(new Set(sales.map((s) => s.venue))).sort();
 
   function startEdit(sale: Sale) {
     setEditingId(sale.id);
@@ -248,7 +259,6 @@ export default function SalesPage() {
         .eq("reference_id", sale.reference_id)
         .single();
 
-      // Use derived agency_fee as the Stripe amount
       const venueConfig = VENUE_CONFIG[sale.venue] ?? null;
       const derived = calcDerived(sale, venueConfig);
       const amount = Number(derived.agency_fee.toFixed(2));
@@ -296,7 +306,7 @@ export default function SalesPage() {
   }
 
   async function handleSendAllPaymentLinks() {
-    const pending = sales.filter(
+    const pending = filteredSales.filter(
       (s) => s.status !== "Paid" && !s.payment_link_sent,
     );
 
@@ -351,9 +361,9 @@ export default function SalesPage() {
     );
   }
 
-  const grouped = groupByMonth(sales);
+  const grouped = groupByMonth(filteredSales);
   const monthKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
-  const pendingCount = sales.filter(
+  const pendingCount = filteredSales.filter(
     (s) => s.status !== "Paid" && !s.payment_link_sent,
   ).length;
 
@@ -402,19 +412,63 @@ export default function SalesPage() {
           </div>
         </div>
 
-        {/* Legend */}
+        {/* Filters */}
         <div className="flex items-center gap-3 mb-6 flex-wrap">
-          <span className="text-xs text-gray-400 font-medium">
-            Payment status:
-          </span>
-          {Object.entries(PAYMENT_STATUS_CONFIG).map(([, cfg]) => (
-            <span
-              key={cfg.label}
-              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${cfg.cls}`}
+          {/* Name search */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search seller..."
+              value={filterName}
+              onChange={(e) => setFilterName(e.target.value)}
+              className="pl-8 pr-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-300 w-44"
+            />
+          </div>
+
+          {/* Venue dropdown */}
+          <select
+            value={filterVenue}
+            onChange={(e) => setFilterVenue(e.target.value)}
+            className="px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-300"
+          >
+            <option value="">All Venues</option>
+            {uniqueVenues.map((v) => (
+              <option
+                key={v}
+                value={v}
+              >
+                {v}
+              </option>
+            ))}
+          </select>
+
+          {/* Clear filters */}
+          {(filterVenue || filterName) && (
+            <button
+              onClick={() => {
+                setFilterVenue("");
+                setFilterName("");
+              }}
+              className="px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-gray-900 transition-colors"
             >
-              {cfg.label}
+              Clear
+            </button>
+          )}
+
+          <div className="ml-auto flex items-center gap-3 flex-wrap">
+            <span className="text-xs text-gray-400 font-medium">
+              Payment status:
             </span>
-          ))}
+            {Object.entries(PAYMENT_STATUS_CONFIG).map(([, cfg]) => (
+              <span
+                key={cfg.label}
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${cfg.cls}`}
+              >
+                {cfg.label}
+              </span>
+            ))}
+          </div>
         </div>
 
         {monthKeys.length === 0 ? (
@@ -509,13 +563,11 @@ export default function SalesPage() {
                     {grouped[monthKey].map((sale) => {
                       const isEditing = editingId === sale.id;
 
-                      // Resolve venue config from in-code map
                       const venueKey = isEditing
                         ? (editState.venue ?? sale.venue)
                         : sale.venue;
                       const venueConfig = VENUE_CONFIG[venueKey] ?? null;
 
-                      // Always recalculate — live during edit, from stored data otherwise
                       const liveCalc = calcDerived(
                         isEditing ? editState : sale,
                         venueConfig,
@@ -523,7 +575,6 @@ export default function SalesPage() {
 
                       const diff = Number(liveCalc.difference ?? 0);
 
-                      // Flag if 15% threshold was triggered
                       const isFlagged =
                         liveCalc.expected_rev > 0 &&
                         liveCalc.total_revenue > liveCalc.expected_rev * 1.15;
@@ -539,7 +590,6 @@ export default function SalesPage() {
                           key={sale.id}
                           className={`${T.cls.tr} ${isFlagged ? "bg-yellow-200 hover:bg-yellow-300 border-l-4 border-yellow-500" : cfg.rowBg}`}
                         >
-                          {/* Actions */}
                           <TableCell>
                             {isEditing ? (
                               <div className="flex gap-1">
@@ -567,7 +617,6 @@ export default function SalesPage() {
                             )}
                           </TableCell>
 
-                          {/* Payment status */}
                           <TableCell className="text-center">
                             {isFlagged && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-yellow-900 border border-yellow-500 mb-1 mr-1">
