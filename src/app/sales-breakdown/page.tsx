@@ -114,6 +114,7 @@ const UK_CITIES = [
 
 interface SalesForm {
   date: string;
+  shiftStartTime: string;
   city: string;
   venue: string;
   name: string;
@@ -131,6 +132,7 @@ interface SalesForm {
 
 const INITIAL: SalesForm = {
   date: "",
+  shiftStartTime: "",
   city: "",
   venue: "",
   name: "",
@@ -206,7 +208,7 @@ function InvalidLinkScreen() {
 
 function SalesTrackerInner() {
   const searchParams = useSearchParams();
-  const refParam = searchParams.get("ref"); // e.g. ?ref=STF-878
+  const refParam = searchParams.get("ref");
 
   const [form, setForm] = useState<SalesForm>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
@@ -267,6 +269,7 @@ function SalesTrackerInner() {
 
     const payload = {
       date: form.date,
+      shiftStartTime: form.shiftStartTime,
       city: form.city,
       venue: form.venue,
       name: form.name,
@@ -357,7 +360,6 @@ function SalesTrackerInner() {
         >
           {/* Block 1: Basic Info */}
           <div className="p-8 rounded-[2rem] bg-white border border-gray-100 shadow-sm space-y-4">
-            {/* Name — locked, resolved from ?ref= param */}
             <FieldLabel>Your Name</FieldLabel>
             <div className="w-full rounded-2xl px-6 py-4 bg-gray-100 border border-gray-200 text-gray-700 font-semibold flex items-center justify-between">
               <span>{form.name}</span>
@@ -370,6 +372,15 @@ function SalesTrackerInner() {
               className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium"
               value={form.date}
               onChange={(e) => upd({ date: e.target.value })}
+              required
+            />
+
+            <FieldLabel required>Shift Start Time</FieldLabel>
+            <input
+              type="time"
+              className="w-full rounded-2xl px-6 py-4 bg-gray-50 border border-gray-200 text-gray-900 font-medium"
+              value={form.shiftStartTime}
+              onChange={(e) => upd({ shiftStartTime: e.target.value })}
               required
             />
 
@@ -546,7 +557,6 @@ function SalesTrackerInner() {
   );
 }
 
-// Required: useSearchParams() must be inside a Suspense boundary for Next.js static build
 export default function SalesTrackerPage() {
   return (
     <Suspense
