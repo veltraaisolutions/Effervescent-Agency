@@ -40,7 +40,7 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
 
   const agency_fee = agency_comm + deductions;
-  const actual_rev = total_revenue - deductions;
+  const actual_rev = total_revenue; // cash + card
   const difference = actual_rev - expected_rev;
 
   return {

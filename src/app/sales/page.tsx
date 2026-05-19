@@ -119,7 +119,7 @@ export function calcDerived(
   // Step 7 — Final agency fee (Stripe link amount)
   const agency_fee = agency_comm + deductions;
 
-  const actual_rev = total_revenue - deductions;
+  const actual_rev = total_revenue; // cash + card
   const difference = actual_rev - expected_rev;
 
   return {
