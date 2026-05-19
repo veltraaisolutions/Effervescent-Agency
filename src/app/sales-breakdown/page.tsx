@@ -259,6 +259,10 @@ function SalesTrackerInner() {
     reader.readAsDataURL(file);
   };
 
+  const handleClearImage = (type: "bottle" | "payment") => {
+    upd({ [type === "bottle" ? "bottleImage" : "paymentImage"]: null });
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -522,13 +526,25 @@ function SalesTrackerInner() {
                 </FieldLabel>
                 <label className="relative block w-full h-32 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer overflow-hidden bg-gray-50">
                   {form[`${type}Image`] ? (
-                    <Image
-                      src={form[`${type}Image`]!}
-                      alt="Receipt"
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                    />
+                    <>
+                      <Image
+                        src={form[`${type}Image`]!}
+                        alt="Receipt"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleClearImage(type);
+                        }}
+                        className="absolute top-1 right-1 z-10 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold"
+                      >
+                        ✕
+                      </button>
+                    </>
                   ) : (
                     <Upload className="text-gray-400" />
                   )}
