@@ -625,7 +625,7 @@ export default function SalesPage() {
                             )}
                             {discrepancyStatus === "within" && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-green-100 text-green-700 border border-green-300 mb-1 block">
-                                ✓ Range
+                                ✓ Within Range
                               </span>
                             )}
                             {isEditing ? (
@@ -784,7 +784,23 @@ export default function SalesPage() {
                               diff < 0 ? "text-red-600" : "text-green-600"
                             }`}
                           >
-                            {isEditing ? numInput("difference") : mono(diff)}
+                            {isEditing ? (
+                              numInput("difference")
+                            ) : (
+                              <>
+                                {mono(diff)}
+                                {liveCalc.expected_rev > 0 && (
+                                  <span className="ml-1 text-[10px] text-gray-400">
+                                    (
+                                    {(
+                                      (diff / liveCalc.expected_rev) *
+                                      100
+                                    ).toFixed(1)}
+                                    %)
+                                  </span>
+                                )}
+                              </>
+                            )}
                           </TableCell>
 
                           {/* Paid Bar */}
