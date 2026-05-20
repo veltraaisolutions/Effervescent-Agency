@@ -43,6 +43,11 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   };
 }
 
+function preferManual(manual: unknown, auto: number): number {
+  const n = Number(manual);
+  return !isNaN(n) && String(manual).trim() !== "" ? n : auto;
+}
+
 export async function getSales(): Promise<Sale[]> {
   const { data, error } = await supabase
     .from("milli_sales")
@@ -69,14 +74,14 @@ export async function updateSale(
     bar_amount: derived.bar_amount,
     card_amount: Number(editState.card_amount) || 0,
     cash_collected: Number(editState.cash_collected) || 0,
-    deductions: derived.deductions,
-    agency_fee: derived.agency_fee,
-    expected_rev: derived.expected_rev,
-    actual_rev: derived.actual_rev,
-    total_revenue: derived.total_revenue,
-    seller_comm: derived.seller_comm,
-    agency_comm: derived.agency_comm,
-    difference: derived.difference,
+    total_revenue: preferManual(editState.total_revenue, derived.total_revenue),
+    seller_comm: preferManual(editState.seller_comm, derived.seller_comm),
+    agency_comm: preferManual(editState.agency_comm, derived.agency_comm),
+    deductions: preferManual(editState.deductions, derived.deductions),
+    agency_fee: preferManual(editState.agency_fee, derived.agency_fee),
+    expected_rev: preferManual(editState.expected_rev, derived.expected_rev),
+    actual_rev: preferManual(editState.actual_rev, derived.actual_rev),
+    difference: preferManual(editState.difference, derived.difference),
     agency_amount: Number(editState.agency_amount) || 0,
     paid_bar_directly:
       editState.paid_bar_directly === true ||

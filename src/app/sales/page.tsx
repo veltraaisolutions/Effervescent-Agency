@@ -30,7 +30,6 @@ import {
 const BRAND_PINK = "#FFB8D7";
 const SEND_STRIPE_WEBHOOK = "https://n8n.veltraai.net/webhook/send-stripe-link";
 
-// ─── Payment status helpers ──────────────────────────────────────────────────
 function getPaymentStatus(
   sale: Sale,
 ): "pending" | "link_sent" | "reminder_sent" | "paid" {
@@ -67,7 +66,6 @@ function mono(val: number | null | undefined) {
   return `£${Number(val ?? 0).toFixed(2)}`;
 }
 
-// ─── Core calculation — no correction, just flag ─────────────────────────────
 export function calcDerived(
   sale: Partial<Sale>,
   venueConfig?: VenueConfig | null,
@@ -84,18 +82,13 @@ export function calcDerived(
   const bottles = bottlesSold;
   let deductions = 0;
 
-  // Commission
   const net_revenue = total_revenue - bar_earning;
   const seller_comm = Math.max(0, net_revenue / 2);
   const agency_comm = Math.max(0, net_revenue / 2);
 
-  // Bar payment check
   if (!sale.paid_bar_directly) deductions += bar_earning;
-
-  // Agency sent money check
   if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
 
-  // Final agency fee
   const agency_fee = agency_comm + deductions;
   const actual_rev = total_revenue;
   const difference = actual_rev - expected_rev;
@@ -135,7 +128,6 @@ function formatMonthKey(key: string) {
   });
 }
 
-// ─── Page component ──────────────────────────────────────────────────────────
 export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,7 +142,6 @@ export default function SalesPage() {
   } | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
-  // ─── Filters ────────────────────────────────────────────────────────────────
   const [filterVenue, setFilterVenue] = useState<string>("");
   const [filterName, setFilterName] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
@@ -193,7 +184,6 @@ export default function SalesPage() {
     };
   }, [fetchSales]);
 
-  // ─── Filtered + grouped data ─────────────────────────────────────────────────
   const filteredSales = sales.filter((s) => {
     const venueMatch = filterVenue === "" || s.venue === filterVenue;
     const nameMatch =
@@ -224,8 +214,8 @@ export default function SalesPage() {
       setSales((prev) => prev.map((s) => (s.id === editingId ? updated : s)));
       setEditingId(null);
       setEditState({});
-    } catch (err: any) {
-      alert("Save failed: " + err.message);
+    } catch (err: unknown) {
+      alert("Save failed: " + (err as Error).message);
     } finally {
       setSaving(false);
     }
@@ -399,7 +389,6 @@ export default function SalesPage() {
 
         {/* Filters */}
         <div className="flex items-center gap-3 mb-6 flex-wrap">
-          {/* Name search */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -411,7 +400,6 @@ export default function SalesPage() {
             />
           </div>
 
-          {/* Venue dropdown */}
           <select
             value={filterVenue}
             onChange={(e) => setFilterVenue(e.target.value)}
@@ -428,7 +416,6 @@ export default function SalesPage() {
             ))}
           </select>
 
-          {/* Clear filters */}
           {(filterVenue || filterName || filterStatus) && (
             <button
               onClick={() => {
@@ -442,7 +429,6 @@ export default function SalesPage() {
             </button>
           )}
 
-          {/* Clickable payment status filters */}
           <div className="ml-auto flex items-center gap-2 flex-wrap">
             <span className="text-xs text-gray-400 font-medium">Filter:</span>
             {(
@@ -625,7 +611,7 @@ export default function SalesPage() {
                             )}
                           </TableCell>
 
-                          {/* Status cell */}
+                          {/* Status */}
                           <TableCell className="text-center">
                             {discrepancyStatus === "over" && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-yellow-900 border border-yellow-500 mb-1 block">
@@ -642,7 +628,18 @@ export default function SalesPage() {
                                 ✓ Range
                               </span>
                             )}
-                            {paymentStatus === "pending" ? (
+                            {isEditing ? (
+                              <select
+                                value={(editState.status as string) ?? ""}
+                                onChange={(e) =>
+                                  editField("status", e.target.value)
+                                }
+                                className="px-2 py-1 text-xs rounded-lg border border-pink-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-300 w-full"
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="Paid">Paid</option>
+                              </select>
+                            ) : paymentStatus === "pending" ? (
                               <button
                                 onClick={() => handleSendPaymentLink(sale)}
                                 disabled={isSendingThis || sendingAll}
@@ -669,14 +666,19 @@ export default function SalesPage() {
                             )}
                           </TableCell>
 
+                          {/* Date */}
                           <TableCell className="text-gray-500 text-xs whitespace-nowrap">
                             {isEditing
                               ? textInput("date_of_shift")
                               : sale.date_of_shift}
                           </TableCell>
+
+                          {/* City */}
                           <TableCell className="text-gray-600 text-xs whitespace-nowrap">
                             {isEditing ? textInput("city") : (sale.city ?? "—")}
                           </TableCell>
+
+                          {/* Venue */}
                           <TableCell>
                             {isEditing ? (
                               textInput("venue")
@@ -689,6 +691,8 @@ export default function SalesPage() {
                               </Badge>
                             )}
                           </TableCell>
+
+                          {/* Seller */}
                           <TableCell
                             className={T.cls.td + " whitespace-nowrap"}
                           >
@@ -696,52 +700,94 @@ export default function SalesPage() {
                               ? textInput("full_name")
                               : sale.full_name}
                           </TableCell>
+
+                          {/* Units */}
                           <TableCell className="text-center text-gray-500 font-mono">
                             {isEditing
                               ? numInput("bottles_sold")
                               : liveCalc.bottles.toFixed(2)}
                           </TableCell>
+
+                          {/* Bar Earning */}
                           <TableCell className="text-right font-mono text-gray-800">
                             {isEditing
                               ? numInput("bar_amount")
                               : mono(liveCalc.bar_earning)}
                           </TableCell>
+
+                          {/* Card */}
                           <TableCell className="text-right font-mono text-gray-800">
                             {isEditing
                               ? numInput("card_amount")
                               : mono(sale.card_amount)}
                           </TableCell>
+
+                          {/* Cash */}
                           <TableCell className="text-right font-mono text-green-700">
                             {isEditing
                               ? numInput("cash_collected")
                               : mono(sale.cash_collected)}
                           </TableCell>
+
+                          {/* Total Rev */}
                           <TableCell className="text-right font-mono font-bold text-gray-900">
-                            {mono(liveCalc.total_revenue)}
+                            {isEditing
+                              ? numInput("total_revenue")
+                              : mono(liveCalc.total_revenue)}
                           </TableCell>
+
+                          {/* Seller Comm */}
                           <TableCell className="text-right font-mono text-purple-700">
-                            {mono(liveCalc.seller_comm)}
+                            {isEditing
+                              ? numInput("seller_comm")
+                              : mono(liveCalc.seller_comm)}
                           </TableCell>
+
+                          {/* Agency Comm */}
                           <TableCell className="text-right font-mono text-blue-700">
-                            {mono(liveCalc.agency_comm)}
+                            {isEditing
+                              ? numInput("agency_comm")
+                              : mono(liveCalc.agency_comm)}
                           </TableCell>
+
+                          {/* Deductions */}
                           <TableCell className="text-right font-mono text-red-500">
-                            {mono(liveCalc.deductions)}
+                            {isEditing
+                              ? numInput("deductions")
+                              : mono(liveCalc.deductions)}
                           </TableCell>
+
+                          {/* Agency Fee */}
                           <TableCell className="text-right font-mono text-orange-600">
-                            {mono(liveCalc.agency_fee)}
+                            {isEditing
+                              ? numInput("agency_fee")
+                              : mono(liveCalc.agency_fee)}
                           </TableCell>
+
+                          {/* Expected Rev */}
                           <TableCell className="text-right font-mono text-gray-500">
-                            {mono(liveCalc.expected_rev)}
+                            {isEditing
+                              ? numInput("expected_rev")
+                              : mono(liveCalc.expected_rev)}
                           </TableCell>
+
+                          {/* Actual Rev */}
                           <TableCell className="text-right font-mono text-gray-800">
-                            {mono(liveCalc.actual_rev)}
+                            {isEditing
+                              ? numInput("actual_rev")
+                              : mono(liveCalc.actual_rev)}
                           </TableCell>
+
+                          {/* Difference */}
                           <TableCell
-                            className={`text-right font-mono font-bold ${diff < 0 ? "text-red-600" : "text-green-600"}`}
+                            className={`text-right font-mono font-bold ${
+                              diff < 0 ? "text-red-600" : "text-green-600"
+                            }`}
                           >
-                            {mono(diff)}
+                            {isEditing ? numInput("difference") : mono(diff)}
                           </TableCell>
+
+                          {/* Paid Bar */}
                           <TableCell className="text-center text-lg">
                             {isEditing ? (
                               <input
@@ -761,6 +807,8 @@ export default function SalesPage() {
                               "❌"
                             )}
                           </TableCell>
+
+                          {/* Agency Sent */}
                           <TableCell className="text-center text-lg">
                             {isEditing ? (
                               <input
@@ -780,17 +828,21 @@ export default function SalesPage() {
                               "❌"
                             )}
                           </TableCell>
+
+                          {/* Agency £ */}
                           <TableCell className="text-right font-mono text-blue-700">
                             {isEditing
                               ? numInput("agency_amount")
                               : mono(sale.agency_amount)}
                           </TableCell>
+
+                          {/* Images */}
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
                               {sale.receipt_images ? (
                                 sale.receipt_images
                                   .split(", ")
-                                  .map((url, i) => (
+                                  .map((url: string, i: number) => (
                                     <a
                                       key={i}
                                       href={url}
