@@ -145,6 +145,8 @@ export default function SalesPage() {
   const [filterVenue, setFilterVenue] = useState<string>("");
   const [filterName, setFilterName] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
 
   const fetchSales = useCallback(async () => {
     const data = await getSales();
@@ -191,7 +193,11 @@ export default function SalesPage() {
       s.full_name.toLowerCase().includes(filterName.toLowerCase());
     const statusMatch =
       filterStatus === "" || getPaymentStatus(s) === filterStatus;
-    return venueMatch && nameMatch && statusMatch;
+    const saleDate = new Date(s.date_of_shift);
+    const fromMatch =
+      filterDateFrom === "" || saleDate >= new Date(filterDateFrom);
+    const toMatch = filterDateTo === "" || saleDate <= new Date(filterDateTo);
+    return venueMatch && nameMatch && statusMatch && fromMatch && toMatch;
   });
 
   const uniqueVenues = Array.from(new Set(sales.map((s) => s.venue))).sort();
@@ -389,6 +395,20 @@ export default function SalesPage() {
 
         {/* Filters */}
         <div className="flex items-center gap-3 mb-6 flex-wrap">
+          <input
+            type="date"
+            value={filterDateFrom}
+            onChange={(e) => setFilterDateFrom(e.target.value)}
+            className="px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-300"
+          />
+          <span className="text-xs text-gray-400">to</span>
+          <input
+            type="date"
+            value={filterDateTo}
+            onChange={(e) => setFilterDateTo(e.target.value)}
+            className="px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-300"
+          />
+
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -416,12 +436,18 @@ export default function SalesPage() {
             ))}
           </select>
 
-          {(filterVenue || filterName || filterStatus) && (
+          {(filterVenue ||
+            filterName ||
+            filterStatus ||
+            filterDateFrom ||
+            filterDateTo) && (
             <button
               onClick={() => {
                 setFilterVenue("");
                 setFilterName("");
                 setFilterStatus("");
+                setFilterDateFrom("");
+                setFilterDateTo("");
               }}
               className="px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-gray-900 transition-colors"
             >
