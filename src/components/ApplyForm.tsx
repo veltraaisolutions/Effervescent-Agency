@@ -263,7 +263,7 @@ function FieldLabel({
   return (
     <label className="block text-sm font-semibold text-gray-700 mb-1.5">
       {children}
-      {required && <span className="ml-0.5 text-pink-500">*</span>}
+      {required && <span className="ml-0.5 text-brand-pink">*</span>}
     </label>
   );
 }
@@ -301,9 +301,9 @@ function TextInput({
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
-      className="w-full px-3 py-2 border border-pink-200 rounded-xl text-sm
+      className="w-full px-3 py-2 border border-brand-pink-mid rounded-xl text-sm
         bg-white text-gray-900 placeholder:text-gray-400
-        focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400
+        focus:outline-none focus:ring-2 focus:ring-brand-pink focus:border-brand-pink
         disabled:opacity-50 transition-all"
     />
   );
@@ -326,9 +326,9 @@ function TextareaInput({
       rows={rows}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 border border-pink-200 rounded-xl text-sm
+      className="w-full px-3 py-2 border border-brand-pink-mid rounded-xl text-sm
         bg-white text-gray-900 placeholder:text-gray-400
-        focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400
+        focus:outline-none focus:ring-2 focus:ring-brand-pink focus:border-brand-pink
         resize-none transition-all"
     />
   );
@@ -350,9 +350,9 @@ function SelectInput({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none px-3 py-2 border border-pink-200 rounded-xl text-sm
-          bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400
-          focus:border-pink-400 transition-all"
+        className="w-full appearance-none px-3 py-2 border border-brand-pink-mid rounded-xl text-sm
+          bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-pink
+          focus:border-brand-pink transition-all"
       >
         <option
           value=""
@@ -391,8 +391,8 @@ function YesNoToggle({
           onClick={() => onChange(opt)}
           className={`px-6 py-2 rounded-xl text-sm font-semibold border transition-all ${
             value === opt
-              ? "bg-pink-500 border-pink-500 text-white shadow-sm"
-              : "bg-white text-gray-600 border-gray-300 hover:border-pink-400 hover:text-pink-500"
+              ? "bg-brand-pink border-brand-pink text-white shadow-sm"
+              : "bg-white text-gray-600 border-gray-300 hover:border-brand-pink hover:text-brand-pink"
           }`}
         >
           {opt === "yes" ? "Yes" : "No"}
@@ -420,17 +420,17 @@ function RadioGroup({
           onClick={() => onChange(opt)}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium text-left transition-all ${
             value === opt
-              ? "border-pink-500 bg-pink-50 text-gray-900"
-              : "border-gray-200 bg-white text-gray-600 hover:border-pink-300 hover:text-gray-800"
+              ? "border-brand-pink bg-brand-pink-light text-gray-900"
+              : "border-gray-200 bg-white text-gray-600 hover:border-brand-pink-mid hover:text-gray-800"
           }`}
         >
           <div
             className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-              value === opt ? "border-pink-500" : "border-gray-300"
+              value === opt ? "border-brand-pink" : "border-gray-300"
             }`}
           >
             {value === opt && (
-              <div className="w-2 h-2 rounded-full bg-pink-500" />
+              <div className="w-2 h-2 rounded-full bg-brand-pink" />
             )}
           </div>
           {opt}
@@ -459,8 +459,8 @@ function StyledCheckbox({
         onCheckedChange={(v) => onCheckedChange(!!v)}
         className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
           checked
-            ? "bg-pink-500 border-pink-500"
-            : "border-gray-300 bg-white hover:border-pink-400"
+            ? "bg-brand-pink border-brand-pink"
+            : "border-gray-300 bg-white hover:border-brand-pink"
         }`}
       >
         <CheckboxPrimitive.Indicator>
@@ -805,7 +805,7 @@ export default function ApplyPage() {
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Logo Container */}
-            <div className="h-10 rounded-xl overflow-hidden ring-1 ring-pink-200">
+            <div className="h-10 rounded-xl overflow-hidden ring-1 ring-brand-pink-mid">
               <Image
                 src="/logo.jpeg"
                 alt="Effervescent Agency"
@@ -816,7 +816,7 @@ export default function ApplyPage() {
             </div>
 
             {/* Entire title in the pink color */}
-            <h1 className="text-sm font-bold text-pink-400">
+            <h1 className="text-sm font-bold text-brand-pink">
               Effervescent Agency{" "}
               <span className="hidden sm:inline">
                 - Shot Seller Application Form
@@ -825,7 +825,7 @@ export default function ApplyPage() {
           </div>
 
           {/* Counter */}
-          <span className="text-xs font-semibold px-3 py-1 rounded-full border bg-pink-50 text-pink-600 border-pink-200 whitespace-nowrap">
+          <span className="text-xs font-semibold px-3 py-1 rounded-full border bg-brand-pink-light text-brand-pink-dark border-brand-pink-mid whitespace-nowrap">
             {slide} / 5
           </span>
         </div>
@@ -843,8 +843,8 @@ export default function ApplyPage() {
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
                   s <= slide
                     ? s === slide
-                      ? "bg-pink-500 text-white ring-4 ring-pink-100"
-                      : "bg-pink-500 text-white"
+                      ? "bg-brand-pink text-white ring-4 ring-brand-pink-light"
+                      : "bg-brand-pink text-white"
                     : "bg-gray-100 text-gray-400 border border-gray-300"
                 }`}
               >
@@ -859,7 +859,7 @@ export default function ApplyPage() {
               </div>
               <span
                 className={`text-[10px] font-medium text-center leading-none hidden sm:block ${
-                  s === slide ? "text-pink-500" : "text-gray-400"
+                  s === slide ? "text-brand-pink" : "text-gray-400"
                 }`}
               >
                 {SLIDE_LABELS[s - 1]}
@@ -870,7 +870,7 @@ export default function ApplyPage() {
         <div className="h-1 bg-gray-200/50 rounded-full overflow-hidden">
           <div
             style={{ width: `${((slide - 1) / 4) * 100}%` }}
-            className="h-full rounded-full bg-gradient-to-r from-pink-400 to-pink-600 transition-all duration-500 ease-out"
+            className="h-full rounded-full bg-gradient-to-r from-brand-pink to-brand-pink-dark transition-all duration-500 ease-out"
           />
         </div>
       </div>
@@ -881,10 +881,10 @@ export default function ApplyPage() {
           visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
         }`}
       >
-        <div className="bg-white rounded-3xl border border-pink-100 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-3xl border border-brand-pink-light overflow-hidden shadow-sm">
           {/* Card Header */}
-          <div className="px-6 py-5 bg-gradient-to-r from-pink-500 to-pink-400">
-            <p className="text-xs font-semibold uppercase tracking-widest mb-1 text-pink-100">
+          <div className="px-6 py-5 bg-gradient-to-r from-brand-pink to-brand-pink-mid">
+            <p className="text-xs font-semibold uppercase tracking-widest mb-1 text-white opacity-90">
               Step {slide} of 5
             </p>
             <h2 className="text-xl font-bold text-white">
@@ -993,7 +993,7 @@ export default function ApplyPage() {
                       flex: 1;
                       height: 40px;
                       padding: 8px 12px;
-                      border: 2px solid #fbcfe8 !important; /* border-pink-200 */
+                      border: 2px solid #fbcfe8 !important; /* border-brand-pink-mid */
                       border-radius: 12px;
                       font-size: 14px;
                       font-weight: 500;
@@ -1077,7 +1077,7 @@ export default function ApplyPage() {
                   />
                   <FieldError message={errors.isStudent} />
                   {form.isStudent === "yes" && (
-                    <div className="mt-3 pl-4 border-l-2 border-pink-200 space-y-0">
+                    <div className="mt-3 pl-4 border-l-2 border-brand-pink-mid space-y-0">
                       <FieldLabel required>Home City</FieldLabel>
                       <TextInput
                         value={form.homeCity}
@@ -1110,9 +1110,9 @@ export default function ApplyPage() {
                   </p>
                   <label
                     htmlFor="photos-input"
-                    className="border-2 border-dashed border-pink-200 rounded-2xl p-6 text-center bg-pink-50/40 cursor-pointer hover:bg-pink-50 transition-all block"
+                    className="border-2 border-dashed border-brand-pink-mid rounded-2xl p-6 text-center bg-brand-pink-light/40 cursor-pointer hover:bg-brand-pink-light transition-all block"
                   >
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-pink-400" />
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-brand-pink" />
                     <p className="text-sm font-semibold text-pink-500">
                       Click to add photos
                     </p>
@@ -1182,9 +1182,9 @@ export default function ApplyPage() {
                   {!form.passportId ? (
                     <label
                       htmlFor="id-input"
-                      className="border-2 border-dashed border-pink-200 rounded-2xl p-6 text-center bg-pink-50/40 cursor-pointer hover:bg-pink-50 transition-all block"
+                      className="border-2 border-dashed border-brand-pink-mid rounded-2xl p-6 text-center bg-brand-pink-light/40 cursor-pointer hover:bg-brand-pink-light transition-all block"
                     >
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-pink-400" />
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-brand-pink" />
                       <p className="text-sm font-semibold text-pink-500">
                         Click to upload passport
                       </p>
@@ -1251,7 +1251,7 @@ export default function ApplyPage() {
                     />
                   </div>
                   {form.nonUkPassport === true && (
-                    <div className="pl-4 border-l-2 border-pink-200">
+                    <div className="pl-4 border-l-2 border-brand-pink-mid">
                       <FieldLabel required>Share Code</FieldLabel>
                       <TextInput
                         value={form.shareCode}
@@ -1278,7 +1278,7 @@ export default function ApplyPage() {
                   />
                   <FieldError message={errors.priorExp} />
                   {form.priorExp === "yes" && (
-                    <div className="mt-3 pl-4 border-l-2 border-pink-200 space-y-4">
+                    <div className="mt-3 pl-4 border-l-2 border-brand-pink-mid space-y-4">
                       <div>
                         <FieldLabel required>
                           Previous Company / Venue
@@ -1353,8 +1353,8 @@ export default function ApplyPage() {
             {/* ── Slide 5 ── */}
             {slide === 5 && (
               <>
-                <div className="rounded-2xl p-5 space-y-5 bg-pink-50 border border-pink-200">
-                  <p className="text-sm font-bold text-pink-600">
+                <div className="rounded-2xl p-5 space-y-5 bg-brand-pink-light border border-brand-pink-mid">
+                  <p className="text-sm font-bold text-brand-pink-dark">
                     Please read and tick each box to confirm:
                   </p>
                   <div>
@@ -1425,7 +1425,7 @@ export default function ApplyPage() {
               type="button"
               onClick={handleNext}
               disabled={submitting}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-pink-500 hover:bg-pink-600 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-brand-pink-light0 hover:bg-brand-pink-dark text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {submitting ? (
                 <>
