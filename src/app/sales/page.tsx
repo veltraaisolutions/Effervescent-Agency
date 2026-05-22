@@ -520,6 +520,9 @@ export default function SalesPage() {
                       <TableHead className={T.cls.th + " text-center"}>
                         Status
                       </TableHead>
+                      <TableHead className={T.cls.th + " text-center"}>
+                        Payment
+                      </TableHead>
                       <TableHead className={T.cls.th}>Date</TableHead>
                       <TableHead className={T.cls.th}>City</TableHead>
                       <TableHead className={T.cls.th}>Venue</TableHead>
@@ -646,6 +649,7 @@ export default function SalesPage() {
                           </TableCell>
 
                           {/* Status */}
+                          {/* Status */}
                           <TableCell className="text-center">
                             {discrepancyStatus === "over" && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-yellow-900 border border-yellow-500 mb-1 block">
@@ -673,7 +677,18 @@ export default function SalesPage() {
                                 <option value="Pending">Pending</option>
                                 <option value="Paid">Paid</option>
                               </select>
-                            ) : paymentStatus === "pending" ? (
+                            ) : (
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${cfg.cls}`}
+                              >
+                                {cfg.label}
+                              </span>
+                            )}
+                          </TableCell>
+
+                          {/* Payment Link */}
+                          <TableCell className="text-center">
+                            {!isEditing && paymentStatus === "pending" && (
                               <button
                                 onClick={() => handleSendPaymentLink(sale)}
                                 disabled={isSendingThis || sendingAll}
@@ -691,12 +706,6 @@ export default function SalesPage() {
                                 )}
                                 {isSendingThis ? "Sending..." : "Send Link"}
                               </button>
-                            ) : (
-                              <span
-                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${cfg.cls}`}
-                              >
-                                {cfg.label}
-                              </span>
                             )}
                           </TableCell>
 
