@@ -296,20 +296,28 @@ export default function SalesPage() {
       return;
     }
 
+    // Group by reference_id + date_of_shift, pick first sale from each group
+    const groups = new Map<string, Sale>();
+    for (const sale of pending) {
+      const key = `${sale.reference_id}_${sale.date_of_shift}`;
+      if (!groups.has(key)) groups.set(key, sale);
+    }
+    const uniqueGroups = Array.from(groups.values());
+
     if (
       !confirm(
-        `Send payment links to ${pending.length} seller${pending.length !== 1 ? "s" : ""}?`,
+        `Send payment links to ${uniqueGroups.length} seller${uniqueGroups.length !== 1 ? "s" : ""}?`,
       )
     )
       return;
 
     setSendingAll(true);
-    setSendAllProgress({ done: 0, total: pending.length });
+    setSendAllProgress({ done: 0, total: uniqueGroups.length });
 
-    for (let i = 0; i < pending.length; i++) {
-      await handleSendPaymentLink(pending[i]);
-      setSendAllProgress({ done: i + 1, total: pending.length });
-      if (i < pending.length - 1) {
+    for (let i = 0; i < uniqueGroups.length; i++) {
+      await handleSendPaymentLink(uniqueGroups[i]);
+      setSendAllProgress({ done: i + 1, total: uniqueGroups.length });
+      if (i < uniqueGroups.length - 1) {
         await new Promise((r) => setTimeout(r, 500));
       }
     }
