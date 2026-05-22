@@ -2398,6 +2398,15 @@ export function CandidatesDashboard({
       return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
     });
 
+  const conversionRate =
+    candidates.length > 0
+      ? Math.round(
+          (candidates.filter((c) => c.status === "on-boarded").length /
+            candidates.length) *
+            100,
+        )
+      : 0;
+
   const counts = {
     total: candidates.length,
     pending: candidates.filter((c) => c.status === "pending").length,
@@ -2487,6 +2496,34 @@ export function CandidatesDashboard({
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            { label: "Total Applicants", value: counts.total, suffix: "" },
+            { label: "Hired", value: counts.onboarded, suffix: "" },
+            { label: "Rejected", value: counts.rejected, suffix: "" },
+            { label: "Conversion Rate", value: conversionRate, suffix: "%" },
+          ].map(({ label, value, suffix }) => (
+            <div
+              key={label}
+              className="rounded-2xl px-5 py-4 border"
+              style={{ background: T.bg.modal, borderColor: T.border.default }}
+            >
+              <p
+                className="text-xs font-medium mb-1"
+                style={{ color: T.text.muted }}
+              >
+                {label}
+              </p>
+              <p
+                className="text-3xl font-bold"
+                style={{ color: T.brand.primary }}
+              >
+                {value}
+                {suffix}
+              </p>
+            </div>
+          ))}
+        </div>
         {/* ── Search & Filters ── */}
         <div className="flex flex-col gap-4">
           <input
