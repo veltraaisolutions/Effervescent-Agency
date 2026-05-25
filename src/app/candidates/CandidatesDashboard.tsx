@@ -2398,15 +2398,6 @@ export function CandidatesDashboard({
       return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
     });
 
-  const conversionRate =
-    candidates.length > 0
-      ? Math.round(
-          (candidates.filter((c) => c.status === "on-boarded").length /
-            candidates.length) *
-            100,
-        )
-      : 0;
-
   const counts = {
     total: candidates.length,
     pending: candidates.filter((c) => c.status === "pending").length,
@@ -2417,6 +2408,33 @@ export function CandidatesDashboard({
     rejected: candidates.filter((c) => c.status === "rejected").length,
     interviewBooked: candidates.filter((c) => c.status === "interview booked")
       .length,
+  };
+
+  //  stats math
+  const t = counts.total || 1;
+  const metrics = {
+    interviewRate: Math.round(
+      ((counts.inviteSent +
+        counts.interviewBooked +
+        counts.trialOffered +
+        counts.onboarding +
+        counts.onboarded) /
+        t) *
+        100,
+    ),
+    trialRate: Math.round(
+      ((counts.trialOffered + counts.onboarding + counts.onboarded) / t) * 100,
+    ),
+    hiredRate: Math.round(((counts.onboarding + counts.onboarded) / t) * 100),
+    rejectedRate: Math.round((counts.rejected / t) * 100),
+    pipelineRate: Math.round(
+      ((counts.pending +
+        counts.inviteSent +
+        counts.interviewBooked +
+        counts.trialOffered) /
+        t) *
+        100,
+    ),
   };
 
   function SortIcon({ k }: { k: SortKey }) {
@@ -2496,12 +2514,23 @@ export function CandidatesDashboard({
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <div className="grid grid-cols-4 gap-4">
+        {/* stats cards */}
+        <div className="grid grid-cols-3 gap-4 lg:grid-cols-6">
           {[
             { label: "Total Applicants", value: counts.total, suffix: "" },
-            { label: "Hired", value: counts.onboarded, suffix: "" },
-            { label: "Rejected", value: counts.rejected, suffix: "" },
-            { label: "Conversion Rate", value: conversionRate, suffix: "%" },
+            {
+              label: "% Offered Interview",
+              value: metrics.interviewRate,
+              suffix: "%",
+            },
+            { label: "% Offered Trial", value: metrics.trialRate, suffix: "%" },
+            { label: "% Hired", value: metrics.hiredRate, suffix: "%" },
+            { label: "% Rejected", value: metrics.rejectedRate, suffix: "%" },
+            {
+              label: "% In Pipeline",
+              value: metrics.pipelineRate,
+              suffix: "%",
+            },
           ].map(({ label, value, suffix }) => (
             <div
               key={label}
