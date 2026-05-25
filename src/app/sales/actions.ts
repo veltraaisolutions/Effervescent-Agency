@@ -65,6 +65,13 @@ export async function updateSale(
   const venueConfig = VENUE_CONFIG[editState.venue ?? ""] ?? null;
   const derived = calcDerived(editState, venueConfig);
 
+  const currentAgencyFee = preferManual(
+    editState.agency_fee,
+    derived.agency_fee,
+  );
+  const shouldLockOriginal =
+    !editState.original_agency_fee || editState.original_agency_fee === 0;
+
   const payload = {
     date_of_shift: editState.date_of_shift,
     city: editState.city,
@@ -90,6 +97,9 @@ export async function updateSale(
       editState.agency_sent_money === true ||
       (editState.agency_sent_money as unknown as string) === "true",
     status: editState.status,
+    original_agency_fee: shouldLockOriginal
+      ? currentAgencyFee
+      : editState.original_agency_fee,
   };
 
   const { data, error } = await supabase
