@@ -518,6 +518,9 @@ export default function SalesPage() {
                     <TableRow className="border-gray-100 hover:bg-transparent">
                       <TableHead className={T.cls.th}>Actions</TableHead>
                       <TableHead className={T.cls.th + " text-center"}>
+                        Range
+                      </TableHead>
+                      <TableHead className={T.cls.th + " text-center"}>
                         Status
                       </TableHead>
                       <TableHead className={T.cls.th + " text-center"}>
@@ -648,24 +651,32 @@ export default function SalesPage() {
                             )}
                           </TableCell>
 
-                          {/* Status */}
-                          {/* Status */}
+                          {/* Range */}
                           <TableCell className="text-center">
                             {discrepancyStatus === "over" && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-yellow-900 border border-yellow-500 mb-1 block">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-400 text-yellow-900 border border-yellow-500">
                                 ⚠️ Over
                               </span>
                             )}
                             {discrepancyStatus === "under" && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-red-400 text-white border border-red-500 mb-1 block">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-red-400 text-white border border-red-500">
                                 ⬇️ Under
                               </span>
                             )}
                             {discrepancyStatus === "within" && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-green-100 text-green-700 border border-green-300 mb-1 block">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-green-100 text-green-700 border border-green-300">
                                 ✓ Within Range
                               </span>
                             )}
+                            {discrepancyStatus === "none" && (
+                              <span className="text-[10px] text-gray-400">
+                                —
+                              </span>
+                            )}
+                          </TableCell>
+
+                          {/* Status */}
+                          <TableCell className="text-center">
                             {isEditing ? (
                               <select
                                 value={(editState.status as string) ?? ""}
@@ -685,7 +696,6 @@ export default function SalesPage() {
                               </span>
                             )}
                           </TableCell>
-
                           {/* Payment Link */}
                           <TableCell className="text-center">
                             {!isEditing && paymentStatus === "pending" && (
