@@ -811,10 +811,34 @@ export default function SalesPage() {
                           </TableCell>
 
                           {/* Agency Fee */}
-                          <TableCell className="text-right font-mono text-orange-600">
-                            {isEditing
-                              ? numInput("agency_fee")
-                              : mono(liveCalc.agency_fee)}
+                          {/* Agency Fee */}
+                          <TableCell
+                            className={`text-right font-mono ${
+                              !isEditing &&
+                              (discrepancyStatus === "over" ||
+                                discrepancyStatus === "under")
+                                ? "bg-yellow-100"
+                                : ""
+                            }`}
+                          >
+                            {isEditing ? (
+                              numInput("agency_fee")
+                            ) : (
+                              <div className="flex items-center justify-end gap-1">
+                                <span className="text-orange-600">
+                                  {mono(liveCalc.agency_fee)}
+                                </span>
+                                {(discrepancyStatus === "over" ||
+                                  discrepancyStatus === "under") && (
+                                  <span
+                                    title="Review and adjust this amount before sending"
+                                    className="text-yellow-500 cursor-help"
+                                  >
+                                    ⚠️
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </TableCell>
 
                           {/* Expected Rev */}
