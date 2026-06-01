@@ -32,4 +32,8 @@ export interface Sale {
   corrected_bottles?: number | null;
   reported_bar_earning?: number | null;
   bar_earning_difference?: number | null;
+  corrected_bar_earning?: number | null;
+  corrected_net_revenue?: number | null;
+  corrected_seller_comm?: number | null;
+  corrected_agency_fee?: number | null;
 }

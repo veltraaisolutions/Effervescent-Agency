@@ -55,6 +55,12 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   const agency_fee = agency_comm + deductions;
   const difference = actual_rev - expected_rev;
 
+  // Store corrected values separately when adjustment triggered
+  const corrected_bar_earning = adjustment_triggered ? bar_earning : null;
+  const corrected_net_revenue = adjustment_triggered ? net_revenue : null;
+  const corrected_seller_comm = adjustment_triggered ? seller_comm : null;
+  const corrected_agency_fee = adjustment_triggered ? agency_fee : null;
+
   return {
     total_revenue,
     seller_comm,
@@ -72,6 +78,10 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
     corrected_bottles,
     reported_bar_earning,
     bar_earning_difference,
+    corrected_bar_earning,
+    corrected_net_revenue,
+    corrected_seller_comm,
+    corrected_agency_fee,
   };
 }
 
@@ -114,10 +124,10 @@ export async function updateSale(
     card_amount: Number(editState.card_amount) || 0,
     cash_collected: Number(editState.cash_collected) || 0,
     total_revenue: preferManual(editState.total_revenue, derived.total_revenue),
-    seller_comm: derived.seller_comm, // always use auto-corrected value
-    agency_comm: derived.agency_comm, // always use auto-corrected value
-    deductions: derived.deductions, // always use auto-corrected value
-    agency_fee: derived.agency_fee, // always use auto-corrected value
+    seller_comm: derived.seller_comm,
+    agency_comm: derived.agency_comm,
+    deductions: derived.deductions,
+    agency_fee: derived.agency_fee,
     expected_rev: preferManual(editState.expected_rev, derived.expected_rev),
     actual_rev: preferManual(editState.actual_rev, derived.actual_rev),
     difference: preferManual(editState.difference, derived.difference),
@@ -138,6 +148,10 @@ export async function updateSale(
     corrected_bottles: derived.corrected_bottles,
     reported_bar_earning: derived.reported_bar_earning,
     bar_earning_difference: derived.bar_earning_difference,
+    corrected_bar_earning: derived.corrected_bar_earning,
+    corrected_net_revenue: derived.corrected_net_revenue,
+    corrected_seller_comm: derived.corrected_seller_comm,
+    corrected_agency_fee: derived.corrected_agency_fee,
   };
 
   const { data, error } = await supabase

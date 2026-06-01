@@ -134,8 +134,12 @@ export function calcDerived(
     adjustment_direction,
     reported_bottles: bottlesSold,
     corrected_bottles,
-    reported_bar_earning,
     bar_earning_difference,
+    reported_bar_earning,
+    corrected_bar_earning: adjustment_triggered ? bar_earning : null,
+    corrected_net_revenue: adjustment_triggered ? net_revenue : null,
+    corrected_seller_comm: adjustment_triggered ? seller_comm : null,
+    corrected_agency_fee: adjustment_triggered ? agency_fee : null,
   };
 }
 
@@ -625,6 +629,18 @@ export default function SalesPage() {
                         Bar Diff £
                       </TableHead>
                       <TableHead className={T.cls.th + " text-right"}>
+                        Corr. Bar £
+                      </TableHead>
+                      <TableHead className={T.cls.th + " text-right"}>
+                        Corr. Net Rev
+                      </TableHead>
+                      <TableHead className={T.cls.th + " text-right"}>
+                        Corr. Seller £
+                      </TableHead>
+                      <TableHead className={T.cls.th + " text-right"}>
+                        Corr. Agency £
+                      </TableHead>
+                      <TableHead className={T.cls.th + " text-right"}>
                         Images
                       </TableHead>
                     </TableRow>
@@ -1050,6 +1066,49 @@ export default function SalesPage() {
                             )}
                           </TableCell>
 
+                          {/* Corrected Bar Earning */}
+                          <TableCell className="text-right font-mono text-xs">
+                            {sale.corrected_bar_earning != null ? (
+                              <span className="text-purple-600 font-bold">
+                                {mono(sale.corrected_bar_earning)}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </TableCell>
+
+                          {/* Corrected Net Revenue */}
+                          <TableCell className="text-right font-mono text-xs">
+                            {sale.corrected_net_revenue != null ? (
+                              <span className="text-blue-600 font-bold">
+                                {mono(sale.corrected_net_revenue)}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </TableCell>
+
+                          {/* Corrected Seller Comm */}
+                          <TableCell className="text-right font-mono text-xs">
+                            {sale.corrected_seller_comm != null ? (
+                              <span className="text-purple-700 font-bold">
+                                {mono(sale.corrected_seller_comm)}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </TableCell>
+
+                          {/* Corrected Agency Fee */}
+                          <TableCell className="text-right font-mono text-xs">
+                            {sale.corrected_agency_fee != null ? (
+                              <span className="text-orange-600 font-bold">
+                                {mono(sale.corrected_agency_fee)}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </TableCell>
                           {/* Images */}
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
