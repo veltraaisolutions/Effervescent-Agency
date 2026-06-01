@@ -18,7 +18,16 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   const bottles = bottlesSold;
   let deductions = 0;
 
-  const net_revenue = total_revenue - bar_earning;
+  const actual_rev = total_revenue;
+
+  // ── Auto-correction: if actual_rev is >15% off expected_rev, use expected_rev
+  // as the base for all commission/fee calculations instead of actual_rev
+  const hasExpected = expected_rev > 0;
+  const isOver = hasExpected && actual_rev > expected_rev * 1.15;
+  const isUnder = hasExpected && actual_rev < expected_rev * 0.85;
+  const base_rev = isOver || isUnder ? expected_rev : actual_rev;
+
+  const net_revenue = base_rev - bar_earning;
   const seller_comm = Math.max(0, net_revenue / 2);
   const agency_comm = Math.max(0, net_revenue / 2);
 
@@ -26,7 +35,6 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
 
   const agency_fee = agency_comm + deductions;
-  const actual_rev = total_revenue;
   const difference = actual_rev - expected_rev;
 
   return {
@@ -82,10 +90,10 @@ export async function updateSale(
     card_amount: Number(editState.card_amount) || 0,
     cash_collected: Number(editState.cash_collected) || 0,
     total_revenue: preferManual(editState.total_revenue, derived.total_revenue),
-    seller_comm: preferManual(editState.seller_comm, derived.seller_comm),
-    agency_comm: preferManual(editState.agency_comm, derived.agency_comm),
-    deductions: preferManual(editState.deductions, derived.deductions),
-    agency_fee: preferManual(editState.agency_fee, derived.agency_fee),
+    seller_comm: derived.seller_comm, // always use auto-corrected value
+    agency_comm: derived.agency_comm, // always use auto-corrected value
+    deductions: derived.deductions, // always use auto-corrected value
+    agency_fee: derived.agency_fee, // always use auto-corrected value
     expected_rev: preferManual(editState.expected_rev, derived.expected_rev),
     actual_rev: preferManual(editState.actual_rev, derived.actual_rev),
     difference: preferManual(editState.difference, derived.difference),

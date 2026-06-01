@@ -65,7 +65,6 @@ const PAYMENT_STATUS_CONFIG = {
 function mono(val: number | null | undefined) {
   return `£${Number(val ?? 0).toFixed(2)}`;
 }
-
 export function calcDerived(
   sale: Partial<Sale>,
   venueConfig?: VenueConfig | null,
@@ -82,7 +81,14 @@ export function calcDerived(
   const bottles = bottlesSold;
   let deductions = 0;
 
-  const net_revenue = total_revenue - bar_earning;
+  const actual_rev = total_revenue;
+
+  const hasExpected = expected_rev > 0;
+  const isOver = hasExpected && actual_rev > expected_rev * 1.15;
+  const isUnder = hasExpected && actual_rev < expected_rev * 0.85;
+  const base_rev = isOver || isUnder ? expected_rev : actual_rev;
+
+  const net_revenue = base_rev - bar_earning;
   const seller_comm = Math.max(0, net_revenue / 2);
   const agency_comm = Math.max(0, net_revenue / 2);
 
@@ -90,7 +96,6 @@ export function calcDerived(
   if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
 
   const agency_fee = agency_comm + deductions;
-  const actual_rev = total_revenue;
   const difference = actual_rev - expected_rev;
 
   return {
