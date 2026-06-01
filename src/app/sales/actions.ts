@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { Sale } from "./types";
 import { VENUE_CONFIG, VenueConfig } from "@/lib/venueConfig";
 
+const SHOT_PRICE = 4;
+const SHOTS_PER_BOTTLE = 40;
+const TOLERANCE = 0.15;
+
 function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   const cash = Number(sale.cash_collected ?? 0);
   const card = Number(sale.card_amount ?? 0);
@@ -14,25 +18,39 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
   const avgHigh = Number(venueConfig?.avg_sales_per_bottle_high ?? 0);
   const expected_rev = bottlesSold * avgHigh;
 
-  const bar_earning = Number(sale.bar_amount ?? 0);
-  const bottles = bottlesSold;
-  let deductions = 0;
-
+  const reported_bar_earning = Number(sale.bar_amount ?? 0);
   const actual_rev = total_revenue;
 
-  // ── Auto-correction: if actual_rev is >15% off expected_rev, use expected_rev
-  // as the base for all commission/fee calculations instead of actual_rev
-  const hasExpected = expected_rev > 0;
-  const isOver = hasExpected && actual_rev > expected_rev * 1.15;
-  const isUnder = hasExpected && actual_rev < expected_rev * 0.85;
-  const base_rev = isOver || isUnder ? expected_rev : actual_rev;
+  const upper_threshold = expected_rev * (1 + TOLERANCE);
+  const lower_threshold = expected_rev * (1 - TOLERANCE);
+  const isOutsideTolerance =
+    expected_rev > 0 &&
+    (total_revenue > upper_threshold || total_revenue < lower_threshold);
 
-  const net_revenue = base_rev - bar_earning;
+  let bottles = bottlesSold;
+  let bar_earning = reported_bar_earning;
+  let adjustment_triggered = false;
+  let adjustment_direction: string | null = null;
+  let bar_earning_difference = 0;
+  let corrected_bottles: number | null = null;
+
+  if (isOutsideTolerance) {
+    adjustment_triggered = true;
+    adjustment_direction = total_revenue > upper_threshold ? "over" : "under";
+    corrected_bottles = total_revenue / SHOT_PRICE / SHOTS_PER_BOTTLE;
+    bottles = corrected_bottles;
+    bar_earning = corrected_bottles * avgHigh;
+    bar_earning_difference = bar_earning - reported_bar_earning;
+  }
+
+  let deductions = 0;
+  const net_revenue = total_revenue - bar_earning;
   const seller_comm = Math.max(0, net_revenue / 2);
   const agency_comm = Math.max(0, net_revenue / 2);
 
   if (!sale.paid_bar_directly) deductions += bar_earning;
   if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
+  if (adjustment_triggered) deductions += bar_earning_difference;
 
   const agency_fee = agency_comm + deductions;
   const difference = actual_rev - expected_rev;
@@ -48,6 +66,12 @@ function calcDerived(sale: Partial<Sale>, venueConfig?: VenueConfig | null) {
     bar_amount: bar_earning,
     bottles_sold: bottles,
     expected_rev,
+    adjustment_triggered,
+    adjustment_direction,
+    reported_bottles: bottlesSold,
+    corrected_bottles,
+    reported_bar_earning,
+    bar_earning_difference,
   };
 }
 
@@ -108,6 +132,12 @@ export async function updateSale(
     original_agency_fee: shouldLockOriginal
       ? currentAgencyFee
       : editState.original_agency_fee,
+    adjustment_triggered: derived.adjustment_triggered,
+    adjustment_direction: derived.adjustment_direction,
+    reported_bottles: derived.reported_bottles,
+    corrected_bottles: derived.corrected_bottles,
+    reported_bar_earning: derived.reported_bar_earning,
+    bar_earning_difference: derived.bar_earning_difference,
   };
 
   const { data, error } = await supabase

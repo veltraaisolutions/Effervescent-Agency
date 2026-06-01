@@ -26,4 +26,10 @@ export interface Sale {
   payment_link_sent?: boolean | null;
   reminder_sent?: boolean | null;
   original_agency_fee?: number | null;
+  adjustment_triggered?: boolean | null;
+  adjustment_direction?: string | null;
+  reported_bottles?: number | null;
+  corrected_bottles?: number | null;
+  reported_bar_earning?: number | null;
+  bar_earning_difference?: number | null;
 }

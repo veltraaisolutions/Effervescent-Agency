@@ -65,6 +65,11 @@ const PAYMENT_STATUS_CONFIG = {
 function mono(val: number | null | undefined) {
   return `£${Number(val ?? 0).toFixed(2)}`;
 }
+
+const SHOT_PRICE = 4;
+const SHOTS_PER_BOTTLE = 40;
+const TOLERANCE = 0.15;
+
 export function calcDerived(
   sale: Partial<Sale>,
   venueConfig?: VenueConfig | null,
@@ -77,23 +82,39 @@ export function calcDerived(
   const avgHigh = Number(venueConfig?.avg_sales_per_bottle_high ?? 0);
   const expected_rev = bottlesSold * avgHigh;
 
-  const bar_earning = Number(sale.bar_amount ?? 0);
-  const bottles = bottlesSold;
-  let deductions = 0;
-
+  const reported_bar_earning = Number(sale.bar_amount ?? 0);
   const actual_rev = total_revenue;
 
-  const hasExpected = expected_rev > 0;
-  const isOver = hasExpected && actual_rev > expected_rev * 1.15;
-  const isUnder = hasExpected && actual_rev < expected_rev * 0.85;
-  const base_rev = isOver || isUnder ? expected_rev : actual_rev;
+  const upper_threshold = expected_rev * (1 + TOLERANCE);
+  const lower_threshold = expected_rev * (1 - TOLERANCE);
+  const isOutsideTolerance =
+    expected_rev > 0 &&
+    (total_revenue > upper_threshold || total_revenue < lower_threshold);
 
-  const net_revenue = base_rev - bar_earning;
+  let bottles = bottlesSold;
+  let bar_earning = reported_bar_earning;
+  let adjustment_triggered = false;
+  let adjustment_direction: string | null = null;
+  let bar_earning_difference = 0;
+  let corrected_bottles: number | null = null;
+
+  if (isOutsideTolerance) {
+    adjustment_triggered = true;
+    adjustment_direction = total_revenue > upper_threshold ? "over" : "under";
+    corrected_bottles = total_revenue / SHOT_PRICE / SHOTS_PER_BOTTLE;
+    bottles = corrected_bottles;
+    bar_earning = corrected_bottles * avgHigh;
+    bar_earning_difference = bar_earning - reported_bar_earning;
+  }
+
+  let deductions = 0;
+  const net_revenue = total_revenue - bar_earning;
   const seller_comm = Math.max(0, net_revenue / 2);
   const agency_comm = Math.max(0, net_revenue / 2);
 
   if (!sale.paid_bar_directly) deductions += bar_earning;
   if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
+  if (adjustment_triggered) deductions += bar_earning_difference;
 
   const agency_fee = agency_comm + deductions;
   const difference = actual_rev - expected_rev;
@@ -109,6 +130,12 @@ export function calcDerived(
     bar_earning,
     bottles,
     expected_rev,
+    adjustment_triggered,
+    adjustment_direction,
+    reported_bottles: bottlesSold,
+    corrected_bottles,
+    reported_bar_earning,
+    bar_earning_difference,
   };
 }
 
@@ -301,7 +328,6 @@ export default function SalesPage() {
       return;
     }
 
-    // Group by reference_id + date_of_shift, pick first sale from each group
     const groups = new Map<string, Sale>();
     for (const sale of pending) {
       const key = `${sale.reference_id}_${sale.date_of_shift}`;
@@ -580,6 +606,24 @@ export default function SalesPage() {
                       <TableHead className={T.cls.th + " text-right"}>
                         Agency £
                       </TableHead>
+                      <TableHead className={T.cls.th + " text-center"}>
+                        Adjusted?
+                      </TableHead>
+                      <TableHead className={T.cls.th + " text-center"}>
+                        Direction
+                      </TableHead>
+                      <TableHead className={T.cls.th + " text-right"}>
+                        Rep. Bottles
+                      </TableHead>
+                      <TableHead className={T.cls.th + " text-right"}>
+                        Corr. Bottles
+                      </TableHead>
+                      <TableHead className={T.cls.th + " text-right"}>
+                        Rep. Bar £
+                      </TableHead>
+                      <TableHead className={T.cls.th + " text-right"}>
+                        Bar Diff £
+                      </TableHead>
                       <TableHead className={T.cls.th + " text-right"}>
                         Images
                       </TableHead>
@@ -701,6 +745,7 @@ export default function SalesPage() {
                               </span>
                             )}
                           </TableCell>
+
                           {/* Payment Link */}
                           <TableCell className="text-center">
                             {!isEditing && paymentStatus === "pending" && (
@@ -816,7 +861,6 @@ export default function SalesPage() {
                           </TableCell>
 
                           {/* Agency Fee */}
-                          {/* Agency Fee */}
                           <TableCell
                             className={`text-right font-mono ${
                               !isEditing &&
@@ -836,7 +880,7 @@ export default function SalesPage() {
                                 {(discrepancyStatus === "over" ||
                                   discrepancyStatus === "under") && (
                                   <span
-                                    title="Review and adjust this amount before sending"
+                                    title="Auto-corrected due to discrepancy"
                                     className="text-yellow-500 cursor-help"
                                   >
                                     ⚠️
@@ -932,6 +976,78 @@ export default function SalesPage() {
                             {isEditing
                               ? numInput("agency_amount")
                               : mono(sale.agency_amount)}
+                          </TableCell>
+
+                          {/* Adjusted? */}
+                          <TableCell className="text-center text-xs">
+                            {sale.adjustment_triggered ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                                Yes
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-[10px]">
+                                No
+                              </span>
+                            )}
+                          </TableCell>
+
+                          {/* Direction */}
+                          <TableCell className="text-center text-xs">
+                            {sale.adjustment_direction === "over" && (
+                              <span className="text-[10px] font-bold text-yellow-600">
+                                Over
+                              </span>
+                            )}
+                            {sale.adjustment_direction === "under" && (
+                              <span className="text-[10px] font-bold text-red-600">
+                                Under
+                              </span>
+                            )}
+                            {!sale.adjustment_direction && (
+                              <span className="text-gray-400 text-[10px]">
+                                —
+                              </span>
+                            )}
+                          </TableCell>
+
+                          {/* Reported Bottles */}
+                          <TableCell className="text-right font-mono text-gray-500 text-xs">
+                            {sale.reported_bottles != null
+                              ? Number(sale.reported_bottles).toFixed(2)
+                              : "—"}
+                          </TableCell>
+
+                          {/* Corrected Bottles */}
+                          <TableCell className="text-right font-mono text-xs">
+                            {sale.corrected_bottles != null ? (
+                              <span className="text-purple-600 font-bold">
+                                {Number(sale.corrected_bottles).toFixed(2)}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </TableCell>
+
+                          {/* Reported Bar Earning */}
+                          <TableCell className="text-right font-mono text-gray-500 text-xs">
+                            {mono(sale.reported_bar_earning)}
+                          </TableCell>
+
+                          {/* Bar Earning Difference */}
+                          <TableCell className="text-right font-mono text-xs">
+                            {sale.adjustment_triggered ? (
+                              <span
+                                className={
+                                  Number(sale.bar_earning_difference) >= 0
+                                    ? "text-green-600 font-bold"
+                                    : "text-red-600 font-bold"
+                                }
+                              >
+                                {mono(sale.bar_earning_difference)}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
                           </TableCell>
 
                           {/* Images */}
