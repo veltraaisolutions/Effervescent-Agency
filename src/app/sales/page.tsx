@@ -82,64 +82,80 @@ export function calcDerived(
   const avgHigh = Number(venueConfig?.avg_sales_per_bottle_high ?? 0);
   const expected_rev = bottlesSold * avgHigh;
 
-  const reported_bar_earning = Number(sale.bar_amount ?? 0);
+  const reported_bar_earning = Math.max(0, Number(sale.bar_amount ?? 0));
   const actual_rev = total_revenue;
+  const difference = actual_rev - expected_rev;
 
+  // ----- REPORTED VALUES (never overwritten) -----
+  const reported_net_revenue = total_revenue - reported_bar_earning;
+  const reported_seller_comm = Math.max(0, reported_net_revenue / 2);
+  const reported_agency_comm = Math.max(0, reported_net_revenue / 2);
+
+  let reported_deductions = 0;
+  if (!sale.paid_bar_directly) reported_deductions += reported_bar_earning;
+  if (sale.agency_sent_money)
+    reported_deductions += Number(sale.agency_amount ?? 0);
+
+  const reported_agency_fee = reported_agency_comm + reported_deductions;
+
+  // ----- ±15% ADJUSTMENT CHECK -----
   const upper_threshold = expected_rev * (1 + TOLERANCE);
   const lower_threshold = expected_rev * (1 - TOLERANCE);
   const isOutsideTolerance =
     expected_rev > 0 &&
     (total_revenue > upper_threshold || total_revenue < lower_threshold);
 
-  let bottles = bottlesSold;
-  let bar_earning = reported_bar_earning;
   let adjustment_triggered = false;
   let adjustment_direction: string | null = null;
-  let bar_earning_difference = 0;
   let corrected_bottles: number | null = null;
+  let corrected_bar_earning: number | null = null;
+  let corrected_net_revenue: number | null = null;
+  let corrected_seller_comm: number | null = null;
+  let corrected_agency_fee: number | null = null;
+  let bar_earning_difference = 0;
 
   if (isOutsideTolerance) {
     adjustment_triggered = true;
     adjustment_direction = total_revenue > upper_threshold ? "over" : "under";
+
     corrected_bottles = total_revenue / SHOT_PRICE / SHOTS_PER_BOTTLE;
-    bottles = corrected_bottles;
-    bar_earning = corrected_bottles * avgHigh;
-    bar_earning_difference = bar_earning - reported_bar_earning;
+    corrected_bar_earning = corrected_bottles * avgHigh;
+    bar_earning_difference = corrected_bar_earning - reported_bar_earning;
+
+    corrected_net_revenue = total_revenue - corrected_bar_earning;
+    corrected_seller_comm = Math.max(0, corrected_net_revenue / 2);
+
+    let corrected_deductions = 0;
+    if (!sale.paid_bar_directly) corrected_deductions += corrected_bar_earning;
+    if (sale.agency_sent_money)
+      corrected_deductions += Number(sale.agency_amount ?? 0);
+    corrected_deductions += bar_earning_difference;
+
+    corrected_agency_fee =
+      Math.max(0, corrected_net_revenue / 2) + corrected_deductions;
   }
-
-  let deductions = 0;
-  const net_revenue = total_revenue - bar_earning;
-  const seller_comm = Math.max(0, net_revenue / 2);
-  const agency_comm = Math.max(0, net_revenue / 2);
-
-  if (!sale.paid_bar_directly) deductions += bar_earning;
-  if (sale.agency_sent_money) deductions += Number(sale.agency_amount ?? 0);
-  if (adjustment_triggered) deductions += bar_earning_difference;
-
-  const agency_fee = agency_comm + deductions;
-  const difference = actual_rev - expected_rev;
 
   return {
     total_revenue,
-    seller_comm,
-    agency_comm,
+    seller_comm: reported_seller_comm,
+    agency_comm: reported_agency_comm,
     actual_rev,
     difference,
-    deductions,
-    agency_fee,
-    bar_earning,
-    bottles,
+    deductions: reported_deductions,
+    agency_fee: reported_agency_fee,
+    bar_earning: reported_bar_earning,
+    bottles: bottlesSold,
     expected_rev,
     adjustment_triggered,
     adjustment_direction,
     reported_bottles: bottlesSold,
     corrected_bottles,
-    bar_earning_difference,
     reported_bar_earning,
-    corrected_bar_earning: adjustment_triggered ? bar_earning : null,
-    corrected_net_revenue: adjustment_triggered ? net_revenue : null,
-    corrected_seller_comm: adjustment_triggered ? seller_comm : null,
-    corrected_agency_fee: adjustment_triggered ? agency_fee : null,
+    bar_earning_difference,
+    corrected_bar_earning,
+    corrected_net_revenue,
+    corrected_seller_comm,
+    corrected_agency_fee,
   };
 }
 
